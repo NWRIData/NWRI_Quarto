@@ -68,7 +68,9 @@ ROI_plot<-orangesquare %>%
 
 # Takeaways
 
-**For grades 3-5, there is a positive relationship between a school's NWRI enrollment % and a school's average FAST ELA score (PM2, Grades 3-5, 2024-25). This relationship is strongest for schools with higher proportions of economically disadvantaged students which are also schools that have higher than average eligibility and lower than average enrollment numbers (across K-5).**
+* For grades 3-5, there is a positive relationship between a school's NWRI enrollment % and a school's average FAST ELA score (PM2, Grades 3-5, 2024-25). 
+
+* This relationship is strongest for schools with higher proportions of economically disadvantaged students which are also schools that have higher than average eligibility and lower than average enrollment numbers (across K-5).**
 
 *MAIN POINTS: Eligibility, Enrollment, and Economic Disadvantage across schools for Grades K through 5*
 
