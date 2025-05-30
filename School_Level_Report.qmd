@@ -21,13 +21,16 @@ require(ggeffects)
 require(patchwork)
 
 #load data
-report_data<-readRDS("report_data_schools.rds")
+report_data<-readRDS("report_data_schools_descrip.rds")
+analysis_data<- readRDS("report_data_schools_analysis.rds")
 
-#filter out schools with grades 3-5 enrollment totals under 100
 report_data<-report_data %>%
-  mutate(Title.I2 = ifelse(Title.I == "YES", "Title I School", "Non-Title I School"))
+  mutate(Title.I2 = ifelse(Title.I == "YES", "Title I School", "Non-Title I School")) 
 
-analysis_data<-report_data %>%
+#load analysis data
+#filter out schools with grades 3-5 enrollment totals under 100
+
+analysis_data<-analysis_data %>%
   mutate(Title.I2 = ifelse(Title.I == "YES", "Title I School", "Non-Title I School")) %>%
   filter(enrollment_3_5>99) %>%
   mutate(econ_bin = cut(Percent.of.Economically.Disadvantaged.Students,
@@ -47,6 +50,7 @@ hline_data <- report_data %>%
 orangesquare = report_data %>%
   filter(perc_enroll_k_5 <  mean(report_data$perc_enroll_k_5) &
            perc_eligible_k_5 > mean(report_data$perc_eligible_k_5))
+
 percent_eligible_overtotal<-sum(orangesquare$no_eligible_n)/sum(report_data$no_eligible_n)
 
 #also make a dataset for non orange schools 
@@ -84,7 +88,7 @@ ROI_plot<-orangesquare %>%
 ggplot(data = report_data) +
   geom_point(aes(x = Percent.of.Economically.Disadvantaged.Students, 
                  y = perc_eligible_k_5, 
-                 fill = perc_ELL, 
+                 fill = Percent.of.Economically.Disadvantaged.Students, 
                  size = enrollment_K_5), 
              size = 3, color = "black", pch = 21, alpha = 0.5) +
   geom_smooth(method = "lm", 
