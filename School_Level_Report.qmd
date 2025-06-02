@@ -25,7 +25,8 @@ report_data<-readRDS("report_data_schools_descrip.rds")
 analysis_data<- readRDS("report_data_schools_analysis.rds")
 
 report_data<-report_data %>%
-  mutate(Title.I2 = ifelse(Title.I == "YES", "Title I School", "Non-Title I School")) 
+  mutate(Title.I2 = ifelse(Title.I == "YES", "Title I School", "Non-Title I School"))  %>%
+  mutate(Title.I2 = ifelse(is.na(Title.I2), "Unknown", Title.I2))
 
 #load analysis data
 #filter out schools with grades 3-5 enrollment totals under 100
@@ -72,37 +73,40 @@ ROI_plot<-orangesquare %>%
 
 # Takeaways
 
-* For grades 3-5, there is a positive relationship between a school's NWRI enrollment % and a school's average FAST ELA score (PM2, Grades 3-5, 2024-25). 
+-   For grades 3-5, there is a positive relationship between a school's NWRI enrollment % and a school's average FAST ELA score (PM2, Grades 3-5, 2024-25).
 
-* This relationship is strongest for schools with higher proportions of economically disadvantaged students which are also schools that have higher than average eligibility and lower than average enrollment numbers (across K-5).**
+-   This relationship is strongest for schools with higher proportions of economically disadvantaged students which are also schools that have higher than average eligibility and lower than average enrollment numbers (across K-5).\*\*
 
 *MAIN POINTS: Eligibility, Enrollment, and Economic Disadvantage across schools for Grades K through 5*
 
 1.  Data shows that schools with the highest percentage of eligible students for grades K through 5 have higher percentages of economically disadvantaged students. This pattern is NOT an artefact of Title I vs. Non-Title I schools (Figure 1 below). Additionally, schools above the average eligibility percentage (dashed lines Figure 1), are schools with higher percentages of English Language Learners (ELLs).
 
-2.  There are `{r} nrow(orangesquare)` schools that have a lower than average enrollment and higher than average eligibility (Figure 2) and they make up `{r} 100 * round(nrow(orangesquare)/nrow(report_data),2)` % of all schools in the analysis. These schools on average have `{r} round(mean(orangesquare$Percent.of.Economically.Disadvantaged.Students),1)`% of their student enrollment classified as economically disadvantaged while the other schools average at `{r} round(mean(nonorangesquare$Percent.of.Economically.Disadvantaged.Students),1)`%.
+2.  There are `{r} scales::comma(nrow(orangesquare))` schools that have a lower than average enrollment and higher than average eligibility (Figure 2) and they make up `{r} scales::comma(100 * round(nrow(orangesquare)/nrow(report_data),2))` % of all schools in the analysis. These schools on average have `{r} scales::comma(round(mean(orangesquare$Percent.of.Economically.Disadvantaged.Students),1))`% of their student enrollment classified as economically disadvantaged while the other schools average at `{r} scales::comma(round(mean(nonorangesquare$Percent.of.Economically.Disadvantaged.Students),1))`%.
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #| fig-cap: "Figure 1. Scatterplots showing the relationship between NWRI eligibility percentage (by school) against the percent of economically disadvantaged students (also by school) across Title I and Non-Title I schools (left and right). Colors of the points represent the percentages of students classified as English Language Learners (ELL) in these schools. Orange horizontal lines represent the average eligibility percentage for Title I and Non-Title I schools."
 #Make correlation plots
-ggplot(data = report_data) +
+
+ggplot(data = report_data %>%
+         filter(!Title.I2 == "Unknown")) +
   geom_point(aes(x = Percent.of.Economically.Disadvantaged.Students, 
                  y = perc_eligible_k_5, 
-                 fill = Percent.of.Economically.Disadvantaged.Students, 
+                 fill = Title.I2, 
                  size = enrollment_K_5), 
              size = 3, color = "black", pch = 21, alpha = 0.5) +
   geom_smooth(method = "lm", 
               aes(x = Percent.of.Economically.Disadvantaged.Students, 
                   y = perc_eligible_k_5, 
                   group = Title.I2)) +
-  geom_hline(data = hline_data, 
+  geom_hline(data = hline_data%>%
+         filter(!Title.I2 == "Unknown"), 
              aes(yintercept = mean_perc_eligible), 
              linetype = "dashed", color = "orange", linewidth = 1.5) +
   theme_bw() +
-  facet_wrap(~Title.I2) +
+  facet_wrap(~Title.I2, nrow = 1) +
   labs(x = "Percent Economically Disadvantaged Students %",
-       y = "Grades K-5 NWRI Eligibility", fill = "Percent ELL\nK-5 %") +
-    scale_fill_viridis_c(option = "D", 
+       y = "Grades K-5 NWRI Eligibility", fill = "School Type") +
+    scale_fill_viridis_d(option = "E", 
                      guide = guide_colorbar(barwidth = 15,  # length of the bar
                                             barheight = 1.5)) +
   theme(legend.position = "bottom",
@@ -140,7 +144,7 @@ ggplot(data = analysis_data) +
 
 ## Descriptive Analyses
 
-We were able to calculate school specific variables for `{r} length(report_data$Sch)` schools across `{r} length(unique(report_data$Dis))` districts. Certain variables were calculated using student data from grades K through 5 while others only used data from grades 3 through 5 (namely test scores). Variables to note are included in Table 1.
+We were able to calculate school specific variables for `{r} scales::comma(length(report_data$Sch))` schools across `{r} scales::comma(length(unique(report_data$Dis)))` districts. Certain variables were calculated using student data from grades K through 5 while others only used data from grades 3 through 5 (namely test scores). Variables to note are included in Table 1.
 
 Table 1.
 
@@ -161,14 +165,15 @@ Table 1.
 
 In general we observe that schools with higher percentages of economically disadvantaged students are also schools with higher eligibility percentages (Figure 1). This general trend was observed across both Title I and Non-Title I schools. In general eligibility percentages also seemed to be higher in Title I schools (`{r} hline_data$mean_perc_eligible[hline_data$Title.I2 == "Title I School"]`%) versus Non-Title I schools (`{r} hline_data$mean_perc_eligible[hline_data$Title.I2 == "Non-Title I School"]`%).
 
-Schools that have a lower than average enrollment but higher than average eligibility become of significant interest (Figure 3 orange square). These schools are mostly comprised of Title I schools (Figure 3).
+Schools that have a lower than average enrollment but higher than average eligibility become of significant interest (Figure 3 orange square). These schools are mostly comprised of Title I schools (Figure 3). Although `{r} report_data %>%          filter(Title.I2 == "Unknown") %>% nrow` schools were not able to be classified as Title I or not (new schools not updated in the database).
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #| fig-cap: "Figure 3. Scatterplots showing the relationship between NWRI eligibility percentage for grades K-5 (by school) against the NWRI enrollment percentage for grades K-5 (also by school) across Title I and Non-Title I schools (left and right). Vertical and horizontal black lines pinpoint the average eligibility and enrollment percentages across all schools. The orange square pinpoint schools that fall under the average enrollment percentage and over the average eligibility percentage."
 
 
 #Make correlation plots
-ggplot(data = report_data) +
+ggplot(data = report_data %>%
+         filter(!Title.I2 == "Unknown")) +
   geom_rect(aes(xmin = 0,xmax = mean(report_data$perc_enroll_k_5),
                 ymin = mean(report_data$perc_eligible_k_5), ymax = 100), 
             fill = "orange",
@@ -195,7 +200,8 @@ ggplot(data = report_data) +
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #| fig-cap: "Figure 4. Density plots showing where most of the schools are in the relationship between NWRI eligibility percentage for grades K-5 (by school) against the NWRI enrollment percentage for grades K-5 (also by school) across Title I and Non-Title I schools (left and right). This plot essentially shows the highest concentration of points (schools) within the plot, reflecting the points from Figure 2. Vertical and horizontal black lines pinpoint the average eligibility and enrollment percentages across all schools. The orange square pinpoint schools that fall under the average enrollment percentage and over the average eligibility percentage."
 #Make density plots
-ggplot(data = report_data) +
+ggplot(data = report_data %>%
+         filter(!Title.I2 == "Unknown")) +
   geom_rect(aes(xmin = 0,xmax = mean(report_data$perc_enroll_k_5),
                 ymin = mean(report_data$perc_eligible_k_5), ymax = 100), 
             fill = "orange", 
@@ -263,7 +269,7 @@ avg_county_max<-orangesquare %>%
   slice(1)
 ```
 
-There are `{r} nrow(orangesquare)` schools that can be found in the orange square (Figure 3 & 4). Together they have `{r} sum(orangesquare$no_eligible_n)` students through grades K-5 who are eligible for NWRI. This represents `{r} 100 * round(percent_eligible_overtotal,2)`% of all eligible students in grades K-5 across the schools in this analysis. Most of these schools are found in `{r} maxcounty$NMCNTY` with `{r} maxcounty$total_n` eligible students across `{r} maxschoolno$n` schools. But the county with most students per school on average is `{r} avg_county_max$NMCNTY` at `{r} avg_county_max$avg` students. For more extensive data for each of these schools please use the interactive table below. Note: It is often easier to search for the county and then click it to view the schools and their statistics. You can sort the table by different columns as well.
+There are `{r} scales::comma(nrow(orangesquare))` schools that can be found in the orange square (Figure 3 & 4). Together they have `{r} scales::comma(sum(orangesquare$no_eligible_n))` students through grades K-5 who are eligible for NWRI. This represents `{r} 100 * round(percent_eligible_overtotal,2)`% of all eligible students in grades K-5 across the schools in this analysis. Most of these schools are found in `{r} maxcounty$NMCNTY` with `{r} scales::comma(maxcounty$total_n)` eligible students across `{r} scales::comma(maxschoolno$n)` schools. But the county with most students per school on average is `{r} avg_county_max$NMCNTY` at `{r} scales::comma(avg_county_max$avg)` students. For more extensive data for each of these schools please use the interactive table below. Note: It is often easier to search for the county and then click it to view the schools and their statistics. You can sort the table by different columns as well.
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #Create reactable
@@ -475,4 +481,48 @@ analysis_data  %>%
     axis.text = element_text(size = 12),
      title = element_text(face = "bold", size =16)
   )
+```
+
+When we remove several outliers and re-fit the model we see that the negative slopes from schools with lower percentages of economically disadvantaged kids is tempered. 
+
+```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+require(glmmTMB)
+m2_econ_enroll2<-glmmTMB(data = analysis_data %>%
+                           filter(!perc_enroll_3_5 > 45), 
+            mean_normscorepm2 ~  Title.I +scale(enrollment_3_5) +
+              scale(Percent.of.Economically.Disadvantaged.Students) *
+              scale(perc_enroll_3_5) +
+              (1+scale(perc_enroll_3_5)|Dis/LOCALE))
+
+
+pred <- ggpredict(m2_econ_enroll2, 
+                  terms = c("perc_enroll_3_5",
+                            "Percent.of.Economically.Disadvantaged.Students [0,20,40,60,80,100]"))
+
+
+pred_df <- data.frame(pred) %>%
+  mutate(label_group = factor(paste0(group, " %"),
+                              levels = paste0(c(0, 20, 40, 60, 80, 100), " %")))
+
+
+ggplot(data = NULL) +
+  geom_point(data = analysis_data %>%
+                           filter(!perc_enroll_3_5 > 45),
+             aes(x = perc_enroll_3_5, y = mean_normscorepm2),
+             alpha = 0.3) +
+  geom_line(data = pred_df,
+            aes(x = x, y = predicted, color = label_group)) +
+  geom_ribbon(data = pred_df,
+              aes(x = x, ymin = conf.low, ymax = conf.high, fill = label_group),
+              alpha = 0.3) +
+  theme_bw() +
+  labs(y = "FAST ELA Reading Score",
+       x = "Percent enrolled in NWRI (%)",
+       fill = "Percent\nDisadvantaged\nStudents",
+       color = "Percent\nDisadvantaged\nStudents") +
+  scale_color_viridis_d() +
+  scale_fill_viridis_d() +
+  theme( axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12))
+
 ```
