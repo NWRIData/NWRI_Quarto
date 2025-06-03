@@ -21,8 +21,8 @@ require(ggeffects)
 require(patchwork)
 
 #load data
-report_data<-readRDS("data/report_data_schools_descrip.rds")
-analysis_data<- readRDS("data/report_data_schools_analysis.rds")
+report_data<-readRDS("report_data_schools_descrip.rds")
+analysis_data<- readRDS("report_data_schools_analysis.rds")
 
 report_data<-report_data %>%
   mutate(Title.I2 = ifelse(Title.I == "YES", "Title I School", "Non-Title I School"))  %>%
@@ -71,8 +71,6 @@ ROI_plot<-orangesquare %>%
 
 ```
 
-
-
 # Takeaways
 
 -   For grades 3-5, there is a positive relationship between a school's NWRI enrollment % and a school's average FAST ELA score (PM2, Grades 3-5, 2024-25).
@@ -83,9 +81,7 @@ ROI_plot<-orangesquare %>%
 
 1.  Data shows that schools with the highest percentage of eligible students for grades K through 5 have higher percentages of economically disadvantaged students. This pattern is NOT an artefact of Title I vs. Non-Title I schools (Figure 1 below). Additionally, schools above the average eligibility percentage (dashed lines Figure 1), are schools with higher percentages of English Language Learners (ELLs).
 
-2.  There are `r .QuartoInlineRender(scales::comma(nrow(orangesquare)))` schools that have a lower than average enrollment and higher than average eligibility (Figure 2) and they make up `r .QuartoInlineRender(scales::comma(100 * round(nrow(orangesquare)/nrow(report_data),2)))` % of all schools in the analysis. These schools on average have `r .QuartoInlineRender(scales::comma(round(mean(orangesquare$Percent.of.Economically.Disadvantaged.Students),1)))`% of their student enrollment classified as economically disadvantaged while the other schools average at `r .QuartoInlineRender(scales::comma(round(mean(nonorangesquare$Percent.of.Economically.Disadvantaged.Students),1)))`%.
-
-
+2.  There are `{r} scales::comma(nrow(orangesquare))` schools that have a lower than average enrollment and higher than average eligibility (Figure 2) and they make up `{r} scales::comma(100 * round(nrow(orangesquare)/nrow(report_data),2))` % of all schools in the analysis. These schools on average have `{r} scales::comma(round(mean(orangesquare$Percent.of.Economically.Disadvantaged.Students),1))`% of their student enrollment classified as economically disadvantaged while the other schools average at `{r} scales::comma(round(mean(nonorangesquare$Percent.of.Economically.Disadvantaged.Students),1))`%.
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #| fig-cap: "Figure 1. Scatterplots showing the relationship between NWRI eligibility percentage (by school) against the percent of economically disadvantaged students (also by school) across Title I and Non-Title I schools (left and right). Colors of the points represent the percentages of students classified as English Language Learners (ELL) in these schools. Orange horizontal lines represent the average eligibility percentage for Title I and Non-Title I schools."
@@ -118,15 +114,11 @@ ggplot(data = report_data %>%
     axis.text = element_text(size = 12))
 ```
 
-
-
 *MAIN POINTS: Impacts of NWRI enrollment on FAST Reading Scores for Grades 3-5 PM2 2024-25*
 
 1.  Increasing NWRI Enrollment is significantly associated with higher average FAST ELA scores BUT this effect is moderated by the percent of economically disadvantaged students in a school (Figure 2).
 
 2.  Specifically, our model indicates that schools with \~ 80% of their students being classified as economically disadvantaged show a strong positive relationship between NWRI enrollment percentage and average FAST ELA score. This relationship begins to break down under this \~ 80% value.
-
-
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #| fig-cap: "Figure 2. Scatterplots showing the relationship between school average FAST ELA scores (Grades 3-5, PM2) and the percent of NWRI enrollment per school across Title I and Non-Title I (colored points). Different facets show the different percentages of economically disadvantaged students by school."
@@ -150,11 +142,9 @@ ggplot(data = analysis_data) +
     axis.text = element_text(size = 12) )
 ```
 
-
-
 ## Descriptive Analyses
 
-We were able to calculate school specific variables for `r .QuartoInlineRender(scales::comma(length(report_data$Sch)))` schools across `r .QuartoInlineRender(scales::comma(length(unique(report_data$Dis))))` districts. Certain variables were calculated using student data from grades K through 5 while others only used data from grades 3 through 5 (namely test scores). Variables to note are included in Table 1.
+We were able to calculate school specific variables for `{r} scales::comma(length(report_data$Sch))` schools across `{r} scales::comma(length(unique(report_data$Dis)))` districts. Certain variables were calculated using student data from grades K through 5 while others only used data from grades 3 through 5 (namely test scores). Variables to note are included in Table 1.
 
 Table 1.
 
@@ -173,11 +163,9 @@ Table 1.
 | Title 1 School                              | Whether a school is a Title 1 school or not                                                                                                    |                                                                                                       |
 +---------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------+
 
-In general we observe that schools with higher percentages of economically disadvantaged students are also schools with higher eligibility percentages (Figure 1). This general trend was observed across both Title I and Non-Title I schools. In general eligibility percentages also seemed to be higher in Title I schools (`r .QuartoInlineRender(hline_data$mean_perc_eligible[hline_data$Title.I2 == "Title I School"])`%) versus Non-Title I schools (`r .QuartoInlineRender(hline_data$mean_perc_eligible[hline_data$Title.I2 == "Non-Title I School"])`%).
+In general we observe that schools with higher percentages of economically disadvantaged students are also schools with higher eligibility percentages (Figure 1). This general trend was observed across both Title I and Non-Title I schools. In general eligibility percentages also seemed to be higher in Title I schools (`{r} hline_data$mean_perc_eligible[hline_data$Title.I2 == "Title I School"]`%) versus Non-Title I schools (`{r} hline_data$mean_perc_eligible[hline_data$Title.I2 == "Non-Title I School"]`%).
 
-Schools that have a lower than average enrollment but higher than average eligibility become of significant interest (Figure 3 orange square). These schools are mostly comprised of Title I schools (Figure 3). Although `r .QuartoInlineRender(report_data %>%          filter(Title.I2 == "Unknown") %>% nrow)` schools were not able to be classified as Title I or not (new schools not updated in the database).
-
-
+Schools that have a lower than average enrollment but higher than average eligibility become of significant interest (Figure 3 orange square). These schools are mostly comprised of Title I schools (Figure 3). Although `{r} report_data %>%          filter(Title.I2 == "Unknown") %>% nrow` schools were not able to be classified as Title I or not (new schools not updated in the database).
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #| fig-cap: "Figure 3. Scatterplots showing the relationship between NWRI eligibility percentage for grades K-5 (by school) against the NWRI enrollment percentage for grades K-5 (also by school) across Title I and Non-Title I schools (left and right). Vertical and horizontal black lines pinpoint the average eligibility and enrollment percentages across all schools. The orange square pinpoint schools that fall under the average enrollment percentage and over the average eligibility percentage."
@@ -281,11 +269,7 @@ avg_county_max<-orangesquare %>%
   slice(1)
 ```
 
-
-
-There are `r .QuartoInlineRender(scales::comma(nrow(orangesquare)))` schools that can be found in the orange square (Figure 3 & 4). Together they have `r .QuartoInlineRender(scales::comma(sum(orangesquare$no_eligible_n)))` students through grades K-5 who are eligible for NWRI. This represents `r .QuartoInlineRender(100 * round(percent_eligible_overtotal,2))`% of all eligible students in grades K-5 across the schools in this analysis. Most of these schools are found in `r .QuartoInlineRender(maxcounty$NMCNTY)` with `r .QuartoInlineRender(scales::comma(maxcounty$total_n))` eligible students across `r .QuartoInlineRender(scales::comma(maxschoolno$n))` schools. But the county with most students per school on average is `r .QuartoInlineRender(avg_county_max$NMCNTY)` at `r .QuartoInlineRender(scales::comma(avg_county_max$avg))` students. For more extensive data for each of these schools please use the interactive table below. Note: It is often easier to search for the county and then click it to view the schools and their statistics. You can sort the table by different columns as well.
-
-
+There are `{r} scales::comma(nrow(orangesquare))` schools that can be found in the orange square (Figure 3 & 4). Together they have `{r} scales::comma(sum(orangesquare$no_eligible_n))` students through grades K-5 who are eligible for NWRI. This represents `{r} 100 * round(percent_eligible_overtotal,2)`% of all eligible students in grades K-5 across the schools in this analysis. Most of these schools are found in `{r} maxcounty$NMCNTY` with `{r} scales::comma(maxcounty$total_n)` eligible students across `{r} scales::comma(maxschoolno$n)` schools. But the county with most students per school on average is `{r} avg_county_max$NMCNTY` at `{r} scales::comma(avg_county_max$avg)` students. For more extensive data for each of these schools please use the interactive table below. Note: It is often easier to search for the county and then click it to view the schools and their statistics. You can sort the table by different columns as well.
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #Create reactable
@@ -336,17 +320,13 @@ reactable(
 )
 ```
 
-
-
 ## Statistical Analyses
 
 We've been mostly analyzing NWRI impacts on learning gains primarily at the student level where analyses are conducted on hundreds of thousands or rows of data with every row representing a student. While these analyses are useful, detecting impacts (e.g. improved scores etc.) can be difficult and hard to convey to non-technical stakeholders, policymakers, and internal team members. Additionally, data that we know are informative, such as socioeconomic data (e.g. household income), are not available at the student-level.
 
 To work around this we aggregated student-level data (test scores, enrollment in NWRI) to the school-level and were able to combine other school-specific data (e.g. percent of economically disadvantaged students etc.) from the Florida Dept. of Education and the National Center of Education Statistics. More specifically, we calculated the average achievement level by students in grades 3 through 5 for the FAST Reading PM2 Test for the year 2024-25 for each school. We then calculated enrollment percentage of NWRI students per school.
 
-Note: we removed schools with less than 100 students in grades 3 through 5 to minimize schools with smaller sample sizes. This left a sample size of `r .QuartoInlineRender(nrow(analysis_data))` schools.
-
-
+Note: we removed schools with less than 100 students in grades 3 through 5 to minimize schools with smaller sample sizes. This left a sample size of `{r} nrow(analysis_data)` schools.
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 School_size<-ggplot(data = analysis_data) +
@@ -384,8 +364,6 @@ School_size + School_econ  +  plot_layout(nrow = 2, axis_titles =  "collect")
 
 ```
 
-
-
 We then fitted a multi-level model where our response variable was average FAST score as a function of: whether the schools was a Title I or non-Title I school, the percentage of students classified as economically disadvantaged, the total enrollment numbers of grades 3-5 (including all students), and the NWRI enrollment percentage. We included three competing models based on three lines of reasoning:
 
 1.  The impact of enrollment percentage on the average FAST score is dependent on the number of students in grades 3-5.
@@ -399,8 +377,6 @@ Additionally we specify that we also expect the impact of NWRI enrollment percen
 ### Fitting and evaluating models
 
 Below we show the model fittings:
-
-
 
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #here we begin model fitting with TMB with gaussian multilevel models
@@ -425,22 +401,14 @@ m3null<-glmmTMB(data = analysis_data,
 
 ```
 
-
-
 Based of AIC rankings we observed the most plausible model being one where the percentage of economically disadvantage students interacted with the NWRI enrollment percentage:
-
-
 
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #AIC table
 bbmle::AICtab(m1_size_enroll, m2_econ_enroll,m3null, weights = TRUE, sort =TRUE, delta =TRUE)
 ```
 
-
-
 Our top model also showed strong correlation coefficicents (below) where our fixed effects explained \~ 55% of the variation in the data and the inclusion of random effects provided an additional \~16% of explained variation (see below). Additionally, the model was free from any serious collinearity.
-
-
 
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #R2
@@ -452,24 +420,16 @@ performance::check_collinearity(
 )
 ```
 
-
-
 Based off the initial model summary we see a signficant interaction effect where on its own, the percent of economically disadvantaged students leads to lower FAST ELA scores for grades 3-5 BUT this effect is reversed when being moderated by the percent of NWRI enrollment. Additionally Title I schools have on average lower FAST ELA scores than non-Title I schools.
-
-
 
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #model summary
 sjPlot::tab_model(m2_econ_enroll)
 ```
 
-
-
 ### Examining the interaction
 
 A deeper dive into the interaction effect shows school FAST ELA scores increased with NWRI enrollment percentage when the schools also held a high proportion of economically disadvantaged students. This positive relationship breaks down in schools where \~80% or less of the student population is classified as economically disadvantaged.
-
-
 
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
@@ -504,11 +464,7 @@ ggplot(data = NULL) +
 
 ```
 
-
-
 Interestingly our model also showed that at \~40% of economically disadvantaged students, the relationship between NWRI enrollment and FAST ELA scores is negative. But it's important to note that most of the data fed into this model comes from
-
-
 
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
@@ -527,11 +483,7 @@ analysis_data  %>%
   )
 ```
 
-
-
 When we remove several outliers and re-fit the model we see that the negative slopes from schools with lower percentages of economically disadvantaged kids is tempered.
-
-
 
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 require(glmmTMB)
@@ -574,4 +526,3 @@ ggplot(data = NULL) +
     axis.text = element_text(size = 12))
 
 ```
-
