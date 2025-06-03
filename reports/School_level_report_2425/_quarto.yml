@@ -1,0 +1,6 @@
+project:
+  output-dir: docs/School_level_report_doc
+
+format:
+  html:
+    css: shared/styles.scss
