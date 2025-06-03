@@ -1,5 +1,5 @@
 project:
-  output-dir: docs/School_level_report_doc
+  output-dir: docs
 
 format:
   html:
