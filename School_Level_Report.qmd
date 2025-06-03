@@ -19,6 +19,8 @@ require(reactable)
 require(reactablefmtr)
 require(ggeffects)
 require(patchwork)
+require(glmmTMB)
+
 
 #load data
 report_data<-readRDS("report_data_schools_descrip.rds")
@@ -381,7 +383,6 @@ Below we show the model fittings:
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #here we begin model fitting with TMB with gaussian multilevel models
 set.seed(123) #for reproduciblity
-require(glmmTMB)
 m1_size_enroll<-glmmTMB(data = analysis_data, 
             mean_normscorepm2 ~  Title.I  +
               scale(Percent.of.Economically.Disadvantaged.Students) +
@@ -486,9 +487,9 @@ analysis_data  %>%
 When we remove several outliers and re-fit the model we see that the negative slopes from schools with lower percentages of economically disadvantaged kids is tempered.
 
 ```{r, echo=TRUE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
-require(glmmTMB)
-m2_econ_enroll2<-glmmTMB(data = analysis_data %>%
-                           filter(!perc_enroll_3_5 > 45), 
+
+analysis_data2<-analysis_data %>%filter(!perc_enroll_3_5 > 45)
+m2_econ_enroll2<-glmmTMB(data = analysis_data2, 
             mean_normscorepm2 ~  Title.I +scale(enrollment_3_5) +
               scale(Percent.of.Economically.Disadvantaged.Students) *
               scale(perc_enroll_3_5) +
