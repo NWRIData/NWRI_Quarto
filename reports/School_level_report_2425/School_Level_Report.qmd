@@ -1,6 +1,7 @@
 ---
 title: "School-Level Analyses of NWRI"
 author: "NWRI D Team"
+output-dir: docs/school_level_report
 format:
   html:
     toc: true
