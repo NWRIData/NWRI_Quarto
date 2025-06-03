@@ -1,0 +1,11 @@
+---
+title: "New Worlds Reading Initiative Data Team"
+format: html
+---
+
+# Welcome 👋
+
+This is the landing page for our data reports.
+
+- [📈 Data Report 1](reports/School_level_report_2425/School_Level_Report.html)
+- [📊 Data Report 2](reports/report2/Untitled.html)
