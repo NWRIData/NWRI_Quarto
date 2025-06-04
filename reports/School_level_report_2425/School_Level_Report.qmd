@@ -57,6 +57,7 @@ orangesquare = report_data %>%
 
 percent_eligible_overtotal<-sum(orangesquare$no_eligible_n)/sum(report_data$no_eligible_n)
 
+
 #also make a dataset for non orange schools 
 nonorangesquare = report_data %>%
   filter(!(perc_enroll_k_5 <  mean(report_data$perc_enroll_k_5) &
@@ -84,7 +85,7 @@ ROI_plot<-orangesquare %>%
 
 1.  Data shows that schools with the highest percentage of eligible students for grades K through 5 have higher percentages of economically disadvantaged students. This pattern is NOT an artefact of Title I vs. Non-Title I schools (Figure 1 below). Additionally, schools above the average eligibility percentage (dashed lines Figure 1), are schools with higher percentages of English Language Learners (ELLs).
 
-2.  There are `{r} scales::comma(nrow(orangesquare))` schools that have a lower than average enrollment and higher than average eligibility (Figure 2) and they make up `{r} scales::comma(100 * round(nrow(orangesquare)/nrow(report_data),2))` % of all schools in the analysis. These schools on average have `{r} scales::comma(round(mean(orangesquare$Percent.of.Economically.Disadvantaged.Students),1))`% of their student enrollment classified as economically disadvantaged while the other schools average at `{r} scales::comma(round(mean(nonorangesquare$Percent.of.Economically.Disadvantaged.Students),1))`%.
+2.  There are `{r} scales::comma(nrow(orangesquare))` schools that have a lower than average enrollment and higher than average eligibility (Figure 2) and they make up `{r} scales::comma(100 * round(nrow(orangesquare)/nrow(report_data),2))` % of all schools in the analysis. These schools on average have `{r} scales::comma(round(mean(orangesquare$Percent.of.Economically.Disadvantaged.Students, na.rm =T),1))`% of their student enrollment classified as economically disadvantaged while the other schools average at `{r} scales::comma(round(mean(nonorangesquare$Percent.of.Economically.Disadvantaged.Students, na.rm =T),1))`%.
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #| fig-cap: "Figure 1. Scatterplots showing the relationship between NWRI eligibility percentage (by school) against the percent of economically disadvantaged students (also by school) across Title I and Non-Title I schools (left and right). Colors of the points represent the percentages of students classified as English Language Learners (ELL) in these schools. Orange horizontal lines represent the average eligibility percentage for Title I and Non-Title I schools."
