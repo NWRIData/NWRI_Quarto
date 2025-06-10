@@ -21,11 +21,13 @@ require(reactablefmtr)
 require(ggeffects)
 require(patchwork)
 require(glmmTMB)
+require(viridis)
 
 
 #load data
 report_data<-readRDS("data/report_data_schools_descrip.rds")
 analysis_data<- readRDS("data/report_data_schools_analysis.rds")
+Gradeleveltabs<-readRDS("data/Gradeleveltabs.rds")
 
 report_data<-report_data %>%
   mutate(Title.I2 = ifelse(Title.I == "YES", "Title I School", "Non-Title I School"))  %>%
@@ -275,6 +277,7 @@ avg_county_max<-orangesquare %>%
 
 There are `{r} scales::comma(nrow(orangesquare))` schools that can be found in the orange square (Figure 3 & 4). Together they have `{r} scales::comma(sum(orangesquare$no_eligible_n))` students through grades K-5 who are eligible for NWRI. This represents `{r} 100 * round(percent_eligible_overtotal,2)`% of all eligible students in grades K-5 across the schools in this analysis. Most of these schools are found in `{r} maxcounty$NMCNTY` with `{r} scales::comma(maxcounty$total_n)` eligible students across `{r} scales::comma(maxschoolno$n)` schools. But the county with most students per school on average is `{r} avg_county_max$NMCNTY` at `{r} scales::comma(avg_county_max$avg)` students. For more extensive data for each of these schools please use the interactive table below. Note: It is often easier to search for the county and then click it to view the schools and their statistics. You can sort the table by different columns as well.
 
+### Table showing all schools with below average enrollment and above average eligiblity (Orange Square Schools)
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #Create reactable
 reactable(
@@ -291,6 +294,7 @@ reactable(
     ),
     
     `Total\nEligible\nStudents K-5` = colDef(
+      format = colFormat(separators = T),
       aggregate = "sum"
     ),
     
@@ -323,6 +327,81 @@ reactable(
   paginateSubRows = FALSE,
 )
 ```
+
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE, message=FALSE}
+# Step 1: Build summary table (1 row per school)
+school_summary <- Gradeleveltabs %>%
+  group_by(County, SchName, LOCALE, Priority) %>%
+  summarize(avg_perc = mean(perc), total_n = sum(n), .groups = "drop") %>%
+  arrange(Priority)
+```
+
+### Grade breakdown for every school
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+# Step 2: Reactable with expandable color-coded tables
+reactable(
+  school_summary,
+  groupBy = "County",
+  columns = list(
+    SchName = colDef(name = "School"),
+    Priority = colDef(name = "Priority",
+                     cell = function(value) {
+    if (value == "Orange Square School") {
+      htmltools::div(style = "background-color: orange; color: white; padding: 4px; border-radius: 4px; text-align: center;", value)
+    } else {
+      htmltools::div(style = "background-color: #f0f0f0; color: black; padding: 4px; border-radius: 4px; text-align: center;", value)
+    }
+  }
+                      
+                      ),
+    avg_perc = colDef(name = "Avg % Eligible", format = colFormat(digits = 1,
+                                                                  percent = T)),
+    total_n = colDef(name = "Total Eligible Students")
+  ),
+  highlight = TRUE,
+  striped = TRUE,
+  bordered = TRUE,
+  onClick = "expand",
+  details = function(index) {
+    school <- school_summary$SchName[index]
+    detail_data <- Gradeleveltabs %>% filter(SchName == school) %>%
+       select(-c(LOCALE, County, SchName,Priority))
+    
+    reactable(
+      detail_data,
+      columns = list(
+        Grade = colDef(name = "Grade"),
+        n = colDef(
+          name = "No. of Eligible Students",
+          format = colFormat(digits = 0, separators = T),
+          cell = data_bars(
+            fill_color = '#226ab2',
+            background = '#FFFFFF',
+            bar_height = 7,
+            text_position = 'outside-end',
+            max_value = max(detail_data$n),
+            data = detail_data
+          )
+        ),
+        perc = colDef(name = "% Eligible", format = colFormat(digits = 1),
+                      cell = color_tiles(data = detail_data,
+                                         number_fmt = scales::label_percent(accuracy = 0.1),
+                                         colors = viridis::mako(5)))
+      ),
+      defaultPageSize = 6,
+      bordered = TRUE,
+      highlight = TRUE
+    )
+  },
+  sortable = TRUE,
+  filterable = TRUE,
+  showSortable = TRUE,
+  paginateSubRows = FALSE,
+)
+
+```
+
 
 ## Statistical Analyses
 
