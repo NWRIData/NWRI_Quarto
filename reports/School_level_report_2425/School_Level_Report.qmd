@@ -77,13 +77,13 @@ ROI_plot<-orangesquare %>%
 
 ```
 
-# Takeaways
+## Takeaways
 
--   For grades 3-5, there is a positive relationship between a school's NWRI enrollment % and a school's average FAST ELA score (PM2, Grades 3-5, 2024-25).
+-   For grades 3-5, higher NWRI enrollment percentage by school correlates significantly with higher FAST ELA scores (PM2, Grades 3-5, 2024-25).
 
--   This relationship is strongest for schools with higher proportions of economically disadvantaged students which are also schools that have higher than average eligibility and lower than average enrollment numbers (across K-5).\*\*
+-   This correlation is strongest for schools with higher proportions of economically disadvantaged students. Those schools also have higher than average eligibility and lower than average enrollment numbers (across Grades K-5).
 
-*MAIN POINTS: Eligibility, Enrollment, and Economic Disadvantage across schools for Grades K through 5*
+### *MAIN POINTS: Eligibility, Enrollment, and Economic Disadvantage across schools for Grades K through 5*
 
 1.  Data shows that schools with the highest percentage of eligible students for grades K through 5 have higher percentages of economically disadvantaged students. This pattern is NOT an artefact of Title I vs. Non-Title I schools (Figure 1 below). Additionally, schools above the average eligibility percentage (dashed lines Figure 1), are schools with higher percentages of English Language Learners (ELLs).
 
@@ -120,7 +120,7 @@ ggplot(data = report_data %>%
     axis.text = element_text(size = 12))
 ```
 
-*MAIN POINTS: Impacts of NWRI enrollment on FAST Reading Scores for Grades 3-5 PM2 2024-25*
+### *MAIN POINTS: Impacts of NWRI enrollment on FAST Reading Scores for Grades 3-5 PM2 2024-25*
 
 1.  Increasing NWRI Enrollment is significantly associated with higher average FAST ELA scores BUT this effect is moderated by the percent of economically disadvantaged students in a school (Figure 2).
 
@@ -278,6 +278,7 @@ avg_county_max<-orangesquare %>%
 There are `{r} scales::comma(nrow(orangesquare))` schools that can be found in the orange square (Figure 3 & 4). Together they have `{r} scales::comma(sum(orangesquare$no_eligible_n))` students through grades K-5 who are eligible for NWRI. This represents `{r} 100 * round(percent_eligible_overtotal,2)`% of all eligible students in grades K-5 across the schools in this analysis. Most of these schools are found in `{r} maxcounty$NMCNTY` with `{r} scales::comma(maxcounty$total_n)` eligible students across `{r} scales::comma(maxschoolno$n)` schools. But the county with most students per school on average is `{r} avg_county_max$NMCNTY` at `{r} scales::comma(avg_county_max$avg)` students. For more extensive data for each of these schools please use the interactive table below. Note: It is often easier to search for the county and then click it to view the schools and their statistics. You can sort the table by different columns as well.
 
 ### Table showing all schools with below average enrollment and above average eligiblity (Orange Square Schools)
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #Create reactable
 reactable(
@@ -328,7 +329,6 @@ reactable(
 )
 ```
 
-
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE, message=FALSE}
 # Step 1: Build summary table (1 row per school)
 school_summary <- Gradeleveltabs %>%
@@ -338,6 +338,7 @@ school_summary <- Gradeleveltabs %>%
 ```
 
 ### Grade breakdown for every school
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 # Step 2: Reactable with expandable color-coded tables
 reactable(
@@ -401,7 +402,6 @@ reactable(
 )
 
 ```
-
 
 ## Statistical Analyses
 
