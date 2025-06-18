@@ -581,7 +581,7 @@ reactable(
     ),
     
     counts = colDef(
-      name = "Enrollment Activity",
+      name = "Application Activity for Enrolled Students",
       width = 250,
       sticky = "right",
       cell = react_sparkline(counts_filled,
