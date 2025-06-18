@@ -28,6 +28,8 @@ require(viridis)
 report_data<-readRDS("data/report_data_schools_descrip.rds")
 analysis_data<- readRDS("data/report_data_schools_analysis.rds")
 Gradeleveltabs<-readRDS("data/Gradeleveltabs.rds")
+app_data<-readRDS("data/app_data.rds")
+
 
 report_data<-report_data %>%
   mutate(Title.I2 = ifelse(Title.I == "YES", "Title I School", "Non-Title I School"))  %>%
@@ -335,47 +337,284 @@ school_summary <- Gradeleveltabs %>%
   group_by(County, SchName, LOCALE, Priority) %>%
   summarize(avg_perc = mean(perc), total_n = sum(n), .groups = "drop") %>%
   arrange(Priority)
+
+#step 2 also build application data for timeline
+
+
+#global months
+all_months <- seq(
+  floor_date(min(app_data$appdate_month, na.rm = TRUE), "month"),
+  floor_date(max(app_data$appdate_month, na.rm = TRUE), "month"),
+  by = "month"
+)
+
+#Get all unique school names
+all_schools <- app_data %>%
+  distinct(NMCNTY, SchName)
+
+#Create a full combination grid
+grid <- expand_grid(all_schools, appdate_month = all_months)
+
+
+#count actual records
+actual_counts <- app_data %>%
+  count(NMCNTY, SchName, appdate_month)
+
+counts_filled <- grid %>%
+  left_join(actual_counts, by = c("NMCNTY", "SchName", "appdate_month")) %>%
+  mutate(n = replace_na(n, 0))
+
+counts_filled<-counts_filled %>%
+  filter(! appdate_month < "2024-06-01") %>%
+  arrange(NMCNTY,SchName, appdate_month) %>%  # ensure chronological order
+  group_by(NMCNTY,SchName) %>%
+  summarise(counts = list(n)) %>%
+  ungroup() %>%
+  rename(County = NMCNTY)
+
+school_summary2<-left_join(school_summary,counts_filled, by = c("County", "SchName"))  %>%
+  left_join(.,report_data %>% select(NMCNTY,SchName,perc_eligible_k_5,perc_enroll_k_5),
+            by = c("County" = "NMCNTY" ,"SchName" = "SchName"))
+school_summary2<-school_summary2 %>%
+  mutate(priorit_col = case_when(
+    Priority == "Orange Square School" ~ "orange",
+    TRUE ~ 'grey'
+  )) %>%
+   mutate(priorit_col2 = case_when(
+    priorit_col == "orange" ~ "In orange square",
+    priorit_col == "grey" ~ "Not in orange square"
+  )) %>%
+  mutate(perc_eligible_k_5 = perc_eligible_k_5/100,
+         perc_enroll_k_5 = perc_enroll_k_5/100) %>%
+  select(-c(Priority, avg_perc, LOCALE)) %>%
+  relocate(perc_eligible_k_5, .after =total_n) %>%
+  relocate(perc_enroll_k_5, .after = perc_eligible_k_5) %>%
+  rename('School Type' = priorit_col2)  
 ```
 
 ### Grade breakdown for every school
 
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
-# Step 2: Reactable with expandable color-coded tables
+
 reactable(
-  school_summary,
-  groupBy = "County",
+  wrap = TRUE,
+  elementId = "school-table",
+  school_summary2,
+  theme = nytimes(centered = TRUE, header_font_size = 12),
+  
+  groupBy = c("County", "School Type"),
+  
   columns = list(
-    SchName = colDef(name = "School"),
-    Priority = colDef(name = "Priority",
-                     cell = function(value) {
-    if (value == "Orange Square School") {
-      htmltools::div(style = "background-color: orange; color: white; padding: 4px; border-radius: 4px; text-align: center;", value)
-    } else {
-      htmltools::div(style = "background-color: #f0f0f0; color: black; padding: 4px; border-radius: 4px; text-align: center;", value)
-    }
-  }
-                      
-                      ),
-    avg_perc = colDef(name = "Avg % Eligible", format = colFormat(digits = 1,
-                                                                  percent = T)),
-    total_n = colDef(name = "Total Eligible Students")
+    
+    priorit_col = colDef(show = FALSE),
+    
+    SchName = colDef(name = "School",
+                     cell = color_tiles(data = school_summary2, color_ref = 'priorit_col')),
+    
+    perc_enroll_k_5 = colDef(
+      name = "Enrolled %",
+      format = colFormat(digits = 1, percent = TRUE),
+      aggregate = "mean",
+      filterable = TRUE,
+      filterMethod = htmlwidgets::JS("
+        function(rows, columnId, filterValue) {
+          return rows.filter(function(row) {
+            const value = row.values[columnId];
+            return value >= filterValue.min && value <= filterValue.max;
+          });
+        }
+      "),
+      filterInput = function(values, name) {
+        min_val <- floor(min(values, na.rm = TRUE) * 100)
+        max_val <- ceiling(max(values, na.rm = TRUE) * 100)
+        id_min <- paste0('min-', name)
+        id_max <- paste0('max-', name)
+        label_id <- paste0('label-', name)
+        
+        htmltools::tags$div(
+          htmltools::tags$span(id = label_id, paste0(min_val, "% – ", max_val, "%")),
+          htmltools::tags$input(
+            id = id_min,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = min_val,
+            step = 1,
+            oninput = sprintf("
+              const min = parseFloat(this.value);
+              const max = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_max, label_id, name),
+            style = "width: 100%; margin-bottom: 4px;"
+          ),
+          htmltools::tags$input(
+            id = id_max,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = max_val,
+            step = 1,
+            oninput = sprintf("
+              const max = parseFloat(this.value);
+              const min = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_min, label_id, name),
+            style = "width: 100%;"
+          )
+        )
+      }
+    ),
+    
+    perc_eligible_k_5 = colDef(
+      name = "Eligible %",
+      format = colFormat(digits = 1, percent = TRUE),
+      aggregate = "mean",
+      filterable = TRUE,
+      filterMethod = htmlwidgets::JS("
+        function(rows, columnId, filterValue) {
+          return rows.filter(function(row) {
+            const value = row.values[columnId];
+            return value >= filterValue.min && value <= filterValue.max;
+          });
+        }
+      "),
+      filterInput = function(values, name) {
+        min_val <- floor(min(values, na.rm = TRUE) * 100)
+        max_val <- ceiling(max(values, na.rm = TRUE) * 100)
+        id_min <- paste0('min-', name)
+        id_max <- paste0('max-', name)
+        label_id <- paste0('label-', name)
+        
+        htmltools::tags$div(
+          htmltools::tags$span(id = label_id, paste0(min_val, "% – ", max_val, "%")),
+          htmltools::tags$input(
+            id = id_min,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = min_val,
+            step = 1,
+            oninput = sprintf("
+              const min = parseFloat(this.value);
+              const max = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_max, label_id, name),
+            style = "width: 100%; margin-bottom: 4px;"
+          ),
+          htmltools::tags$input(
+            id = id_max,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = max_val,
+            step = 1,
+            oninput = sprintf("
+              const max = parseFloat(this.value);
+              const min = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_min, label_id, name),
+            style = "width: 100%;"
+          )
+        )
+      }
+    ),
+    
+    total_n = colDef(
+      name = "Eligible Students",
+      aggregate = "sum",
+      format = colFormat(separators = TRUE),
+      filterable = TRUE,
+      filterMethod = htmlwidgets::JS("
+        function(rows, columnId, filterValue) {
+          return rows.filter(function(row) {
+            const value = row.values[columnId];
+            return value >= filterValue.min && value <= filterValue.max;
+          });
+        }
+      "),
+      filterInput = function(values, name) {
+        min_val <- floor(min(values, na.rm = TRUE))
+        max_val <- ceiling(max(values, na.rm = TRUE))
+        id_min <- paste0('min-', name)
+        id_max <- paste0('max-', name)
+        label_id <- paste0('label-', name)
+        
+        htmltools::tags$div(
+          htmltools::tags$span(id = label_id, paste0(min_val, " – ", max_val)),
+          htmltools::tags$input(
+            id = id_min,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = min_val,
+            step = 1,
+            oninput = sprintf("
+              const min = parseInt(this.value);
+              const max = parseInt(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + ' – ' + max;
+              Reactable.setFilter('school-table', '%s', { min: min, max: max });
+            ", id_max, label_id, name),
+            style = "width: 100%; margin-bottom: 4px;"
+          ),
+          htmltools::tags$input(
+            id = id_max,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = max_val,
+            step = 1,
+            oninput = sprintf("
+              const max = parseInt(this.value);
+              const min = parseInt(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + ' – ' + max;
+              Reactable.setFilter('school-table', '%s', { min: min, max: max });
+            ", id_min, label_id, name),
+            style = "width: 100%;"
+          )
+        )
+      }
+    ),
+    
+    counts = colDef(
+      name = "Enrollment Activity",
+      width = 250,
+      sticky = "right",
+      cell = react_sparkline(counts_filled,
+                             line_color = "black",
+                             tooltip_color = 'red',
+                             line_width = 2,
+                             line_curve = "linear",
+                             show_area = TRUE,
+                             area_color = "grey",
+                             area_opacity = 1,
+                             height = 80,
+                             highlight_points = highlight_points(max = "red"),
+                             labels = c("max"))
+    )
   ),
+  
   highlight = TRUE,
-  striped = TRUE,
+  striped = FALSE,
   bordered = TRUE,
   onClick = "expand",
   details = function(index) {
-    school <- school_summary$SchName[index]
+    school <- school_summary2$SchName[index]
     detail_data <- Gradeleveltabs %>% filter(SchName == school) %>%
-       select(-c(LOCALE, County, SchName,Priority))
+      select(-c(LOCALE, County, SchName, Priority))
     
     reactable(
+      wrap = TRUE,
       detail_data,
       columns = list(
-        Grade = colDef(name = "Grade"),
+        Grade = colDef(name = "Grade", width = 80, align = "center"),
         n = colDef(
           name = "No. of Eligible Students",
-          format = colFormat(digits = 0, separators = T),
+          format = colFormat(digits = 0, separators = TRUE),
           cell = data_bars(
             fill_color = '#226ab2',
             background = '#FFFFFF',
@@ -385,21 +624,36 @@ reactable(
             data = detail_data
           )
         ),
-        perc = colDef(name = "% Eligible", format = colFormat(digits = 1),
-                      cell = color_tiles(data = detail_data,
-                                         number_fmt = scales::label_percent(accuracy = 0.1),
-                                         colors = viridis::mako(5)))
+        perc = colDef(
+          name = "% Eligible by Grade",
+          format = colFormat(digits = 1),
+          align = "left",
+          width = 100,
+          cell = color_tiles(
+            data = detail_data,
+            number_fmt = scales::label_percent(accuracy = 0.1),
+            colors = viridis::mako(5)
+          )
+        )
       ),
       defaultPageSize = 6,
       bordered = TRUE,
-      highlight = TRUE
+      highlight = TRUE,
+      resizable = TRUE,
+      style = list(maxWidth = 600),
+      sortable = FALSE
     )
   },
+  
   sortable = TRUE,
   filterable = TRUE,
   showSortable = TRUE,
   paginateSubRows = FALSE,
+  paginationType = "jump",
+  resizable = TRUE
 )
+
+
 
 ```
 
