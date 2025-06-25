@@ -12,10 +12,59 @@ editor: visual
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 require(tidyverse)
 regional_Data<-readRDS("data/Regional_Partner_Survey2425.rds")
-
+responders<-regional_Data %>%
+  filter(!is.na(Q5_NPS_GROUP))  %>%
+  nrow()
 #calculate NPS
+NPS_reg<-regional_Data %>%
+  filter(!is.na(Q5_NPS_GROUP)) %>%
+  count(Q5_NPS_GROUP) %>%
+  ungroup() %>%
+  mutate(perc = n/sum(n)) %>% 
+  filter(Q5_NPS_GROUP == "Promoter") %>%
+  mutate(NPS = round(perc * 100))
+
+#calcualte customer satisfaction
+cust_satis<-regional_Data %>%
+  filter(!is.na(Q5_NPS_GROUP)) %>%
+  mutate(satisfied  = ifelse(Q5 %in% c(8,9,10), "Satisfied", "Not")) %>%
+  count(satisfied) %>%
+  ungroup() %>%
+  mutate(cust_perc = round(100*n/sum(n))) %>%
+  filter(satisfied == "Satisfied")
+
+#no detractors so the NPS is just the percentage of promotors
 
 
 ```
+# Overview
 
-Overall NPS is 
+We had a total of `{r} responders` responses to the regional partner annual survey. The overall NPS was `{r} NPS_reg$NPS ` with a customer satisfaction rate of `{r} cust_satis$cust_perc`%.
+
+# Customer satisfaction rate info
+We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.
+
+# Survey content
+Below is a table showing each partner, their NPS score, and their fill in the blank answers to questions regarding why they chose their score and what sort of improvements they would like:
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+require(reactable)
+require(reactablefmtr)
+
+paste(attr(regional_Data$Q7, "label"))
+
+regional_table <- regional_Data %>%
+  select(-Q5_NPS_GROUP) %>%
+  select(Q2, Q5, Q6, Q7) %>%
+  rename(
+    Partner = Q2,
+    `NPS Score` = Q5
+  ) %>%
+  rename_with(~ attr(regional_Data$Q6, "label"), .cols = Q6) %>%
+  rename_with( ~ attr(regional_Data$Q7, "label"), .cols = Q7)
+
+reactable(regional_table,
+          filterable = TRUE,
+          sortable = TRUE,
+          wrap = TRUE)
+
+```
