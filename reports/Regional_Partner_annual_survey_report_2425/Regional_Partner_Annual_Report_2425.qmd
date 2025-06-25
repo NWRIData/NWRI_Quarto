@@ -1,0 +1,16 @@
+---
+title: "Regional Partner Annual Survey 2024-25"
+author: "NWRI D Team"
+output-dir: folder1
+format:
+  html:
+    toc: true
+    css: styles.css
+editor: visual
+---
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
+require(tidyverse)
+regional_Data<-readRDS("data/Regional_Partner_Survey2425.rds")
+
+```

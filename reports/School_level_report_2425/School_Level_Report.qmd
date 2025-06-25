@@ -394,7 +394,6 @@ school_summary2<-school_summary2 %>%
 
 ### Grade breakdown for every school
 
-
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
 reactable(
