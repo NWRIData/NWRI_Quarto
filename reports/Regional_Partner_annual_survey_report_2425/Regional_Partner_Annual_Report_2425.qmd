@@ -13,4 +13,9 @@ editor: visual
 require(tidyverse)
 regional_Data<-readRDS("data/Regional_Partner_Survey2425.rds")
 
+#calculate NPS
+
+
 ```
+
+Overall NPS is 
