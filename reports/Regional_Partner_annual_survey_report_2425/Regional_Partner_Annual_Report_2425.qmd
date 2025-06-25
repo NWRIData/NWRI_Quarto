@@ -37,6 +37,53 @@ cust_satis<-regional_Data %>%
 
 
 ```
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
+#NPS score graph
+
+require(tidyverse)
+
+#NPS plot 
+
+NPS_Scale<-data.frame(
+  x_mas= "NPS_score",
+  x = c("Needs Improvement\n(-100-0)",
+        "Good\n(0-30)",
+        "Great\n(30-70)",
+        "Excellent\n(70-100)"),
+  perc = c(50, 15, 20,15),
+  perc_label = c(25, 60, 77.5, 92.5)
+  
+)
+
+Ourdata = data.frame(x_mas= "NPS_score",y = 50+100*((57/100)/2))
+
+p<-ggplot(data = NULL) +
+  geom_col(data = NPS_Scale,
+           aes(y = x_mas, x = perc, fill = x),
+           width = 0.2) +
+  geom_text(data = NPS_Scale,
+            aes(y = x_mas, x = perc_label, label = x), 
+            color = "white", size = 5, fontface = "bold", hjust = 0.5) +
+  scale_fill_manual(values = rev(c("#D73027", "#FC8D59","#91BFDB","#4575B4"))) +
+  geom_point(data = Ourdata, aes(y = 1.2, x = y), size = 5) +
+  theme_minimal() +
+  theme(axis.title = element_blank(), 
+        axis.text = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid = element_blank(),
+        plot.margin = unit(c(0, 0, 0, 0),units = "pt")) +   # remove margins
+  coord_cartesian(clip = "off")  # avoid clipping labels
+
+# Save tightly cropped
+ggsave("nps_bar_dot.png", p,
+       width = 10, height = 3, dpi = 300,
+       bg = "transparent")  # optional: transparent background
+
+```
+![](nps_bar_dot.png)
+
 # Overview
 
 We had a total of `{r} responders` responses to the regional partner annual survey. The overall NPS was `{r} NPS_reg$NPS ` with a customer satisfaction rate of `{r} cust_satis$cust_perc`%.
