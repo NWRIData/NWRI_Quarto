@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.57">
+<meta name="generator" content="quarto-1.6.42">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -30,10 +30,10 @@ ul.task-list li input[type="checkbox"] {
 <script src="District_POC_Annual_Report_2425_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="District_POC_Annual_Report_2425_files/libs/quarto-html/anchor.min.js"></script>
 <link href="District_POC_Annual_Report_2425_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="District_POC_Annual_Report_2425_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="District_POC_Annual_Report_2425_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="District_POC_Annual_Report_2425_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="District_POC_Annual_Report_2425_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="District_POC_Annual_Report_2425_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="District_POC_Annual_Report_2425_files/libs/bootstrap/bootstrap-c0367b04c37547644fece4185067e4a7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
 
 <link rel="stylesheet" href="shared/styles.scss">
@@ -49,6 +49,8 @@ ul.task-list li input[type="checkbox"] {
    
   <ul>
   <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview">Overview</a></li>
+  <li><a href="#customer-satisfaction-rate-info" id="toc-customer-satisfaction-rate-info" class="nav-link" data-scroll-target="#customer-satisfaction-rate-info">Customer satisfaction rate info</a></li>
+  <li><a href="#flyer-info" id="toc-flyer-info" class="nav-link" data-scroll-target="#flyer-info">Flyer info</a></li>
   </ul>
 </nav>
 </div>
@@ -82,7 +84,30 @@ ul.task-list li input[type="checkbox"] {
 <p><img src="nps_bar_dot.png" class="img-fluid"></p>
 <section id="overview" class="level1">
 <h1>Overview</h1>
-<p>There was a total of 68 responders for the District POC survey. The overall NPS was 59 while the customer satisfaction rate was 87%</p>
+<p>There was a total of 68 responders for the District POC survey. The overall NPS was 59 while the customer satisfaction rate was 87%.</p>
+</section>
+<section id="customer-satisfaction-rate-info" class="level1">
+<h1>Customer satisfaction rate info</h1>
+<p>We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.</p>
+</section>
+<section id="flyer-info" class="level1">
+<h1>Flyer info</h1>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="District_POC_Annual_Report_2425_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="District_POC_Annual_Report_2425_files/figure-html/unnamed-chunk-4-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
 
 </main>
@@ -169,8 +194,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   });
   clipboard.on('success', onCopySuccess);
   if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    // For code content inside modals, clipBoardJS needs to be initialized with a container option
-    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
     const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
       text: getTextToCopy,
       container: window.document.getElementById('quarto-embedded-source-code-modal')
@@ -281,7 +304,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {

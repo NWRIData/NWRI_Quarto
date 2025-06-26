@@ -89,3 +89,74 @@ There was a total of `{r} nrow(DIS_Data)` responders for the District POC survey
 # Customer satisfaction rate info
 We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.
 
+# Flyer info
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
+flyer_levels<-DIS_Data %>%
+  count(ResponseId,Q2, Q8, Q9) %>%
+  select(-n)
+
+
+
+flyer_levels1<-DIS_Data %>%
+  select(ResponseId,which(str_detect(colnames(DIS_Data), "Q10_"))) %>%
+  filter(is.na(Q10_3_TEXT)) %>%
+  pivot_longer(cols = starts_with("Q10_"), names_to = "Answerselect",
+               values_to = "AnswerQ10") %>%
+  drop_na(AnswerQ10) %>%
+  select(-Answerselect)
+
+flyer_levels2<-DIS_Data %>%
+  select(ResponseId,which(str_detect(colnames(DIS_Data), "Q11_"))) %>%
+  filter(is.na(Q11_4_TEXT)) %>%
+  pivot_longer(cols = starts_with("Q11_"), names_to = "Answerselect", 
+               values_to = "AnswerQ11") %>%
+  drop_na(AnswerQ11) %>%
+  select(-Answerselect)
+
+flyertotal<-left_join(flyer_levels, flyer_levels1, by = "ResponseId") %>%
+  left_join(., flyer_levels2, by = "ResponseId")
+
+```
+
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
+
+flyertotal %>%
+  count(Q8) %>%
+  mutate(Q8 = ifelse(is.na(Q8), "No Answer", Q8)) %>%
+  ggplot(.) +
+  geom_col(aes(x = n, y = Q8)) +
+  geom_text(aes(x = n, y = Q8,label = n), size = 10,
+            color = 'black',nudge_x = 2.5) +
+  theme_minimal() + 
+  labs(title = "Did you receive flyers\nin the 2024–2025 school year?") +
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_blank(), 
+        plot.title = element_text(size = 16)) 
+
+flyertotal %>%
+  filter(Q8 == "Yes") %>%
+  mutate(Q9 = ifelse(is.na(Q9), "No answer", Q9)) %>%
+  mutate(AnswerQ10 = ifelse(is.na(AnswerQ10), "No answer", AnswerQ10)) %>%
+  count(Q9, AnswerQ10)  %>%
+  group_by(Q9) %>%
+  mutate(perc = round(100 * (n / sum(n)))) %>%
+  rename(`Were there enough flyers, too few, too many??` = Q9,
+         `Did schools share any successes around the flyers?` = AnswerQ10) %>%
+  ggplot() +
+  geom_col(aes(
+    x = `Were there enough flyers, too few, too many??`,
+    y = perc,
+    fill =  `Did schools share any successes around the flyers?`
+  )) +
+  theme_bw() +
+  theme(legend.position = "top",
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 16),
+        legend.title.position = "top",
+        axis.text.x = element_text(size = 14),
+        axis.title.x = element_text(size = 16),
+        plot.title = element_text(size = 16)) +
+  scale_fill_viridis_d(option = "E")
+```
