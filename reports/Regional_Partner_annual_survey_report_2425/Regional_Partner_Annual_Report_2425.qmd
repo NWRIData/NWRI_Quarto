@@ -82,7 +82,9 @@ ggsave("nps_bar_dot.png", p,
        bg = "transparent")  # optional: transparent background
 
 ```
-![](nps_bar_dot.png)
+<div style="height: 100px; overflow: hidden; display: flex; justify-content: center;">
+  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-50px);">
+</div>
 
 # Overview
 
@@ -97,21 +99,69 @@ Below is a table showing each partner, their NPS score, and their fill in the bl
 require(reactable)
 require(reactablefmtr)
 
-paste(attr(regional_Data$Q7, "label"))
 
 regional_table <- regional_Data %>%
   select(-Q5_NPS_GROUP) %>%
   select(Q2, Q5, Q6, Q7) %>%
   rename(
-    Partner = Q2,
-    `NPS Score` = Q5
-  ) %>%
-  rename_with(~ attr(regional_Data$Q6, "label"), .cols = Q6) %>%
-  rename_with( ~ attr(regional_Data$Q7, "label"), .cols = Q7)
+    Partner = Q2
+  ) 
+
+
+# each fragment is searched for separately with match size >= # of fragments
+# size > length happens when something like city(_id)? returns two positive matches
+js_filter <-  JS(
+  "function(rows, columnId, filterValue) {
+      // rows = [{'table': 1, 'field': 'city'}, {'table': 2, 'field': 'city city_id'}] 
+      // columnId = 'field'
+      // filterValue = 'city(_id)?'
+      try {
+        const pattern = filterValue.split(' ')
+        const find = RegExp(`(${pattern.join('|')})+`, 'gi')
+        return rows.filter(
+          row => new Set(row.values[columnId].match(find)).size >= pattern.length
+        )
+      } catch(e) {
+          return rows
+      }
+       
+  }"
+)
+
+# highlight all fragment occurrences string matches
+js_match_style <- JS(
+  "function(cellInfo) {
+    try {
+      let filterValue = cellInfo.filterValue
+      let pattern = filterValue.split(' ').filter(n => n).sort().join('|')
+      let regexPattern = new RegExp('(' + pattern + ')', 'gi')
+      let replacement = '<span style=\"color:black;font-weight:bold;\">$1</span>'
+      return cellInfo.value.replace(regexPattern, replacement)
+    } catch(e) {
+        return cellInfo.value
+    }
+  }"
+)
 
 reactable(regional_table,
-          filterable = TRUE,
           sortable = TRUE,
-          wrap = TRUE)
+           filterable = T,
+                    searchable = TRUE,
+          wrap = TRUE,
+          columns = list(
+            Q5 = colDef(name = "NPS\nScore",maxWidth = 70),
+            Q6 = colDef(name = "We would love to hear more about why you rated your experience with us the way you did. What specific aspects influenced your rating?",
+                         filterable = TRUE,
+                          filterMethod = js_filter,
+                          cell = js_match_style,
+                          html = TRUE,
+                          sortable = F),
+            Q7 = colDef(name = "What can we do to better serve you and/or families in your region?",
+                         filterable = TRUE,
+                          filterMethod = js_filter,
+                          cell = js_match_style,
+                          html = TRUE,
+                          sortable = F)
+          ))
 
 ```

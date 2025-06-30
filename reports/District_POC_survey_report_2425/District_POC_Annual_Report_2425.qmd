@@ -123,7 +123,9 @@ ggsave("nps_bar_dot.png", p,
        bg = "transparent")  # optional: transparent background
 
 ```
-![](nps_bar_dot.png)
+<div style="height: 100px; overflow: hidden; display: flex; justify-content: center;">
+  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-50px);">
+</div>
 
 # Overview
 
@@ -210,67 +212,139 @@ flyertotal %>%
 
 # Text Feedback
 
-We generated word cloud based for each NPS group (Promoters, Detractors, and Passives). 
+We generated word cloud based for each NPS group (Promoters, Detractors, and Passives) using all the answers across questions 5, 6, 7. These questions were:
+
+Question 5: We would love to hear more about why you rated your experience with us the way you did. What specific aspects influenced your rating?
+
+Question 6: What do you like the most about New Worlds Reading and our partnership?
+
+Question 7: What can we do to better serve you and/or families in your district?
+
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 #generate word cloud by NPS group and save them for use with table
 
-# Function to create word counts grouped by NPS group for a given question
-make_word_list_by_group <- function(data, question_col, group_col = "Q4_NPS_GROUP") {
-  data %>%
-    select(all_of(c(group_col, question_col))) %>%
-    rename(group = all_of(group_col), text = all_of(question_col)) %>%
-    filter(!is.na(text)) %>%
-    unnest_tokens(word, text) %>%
+combined_word_cloud<-DIS_Data %>%
+  select(Q4_NPS_GROUP, Q5, Q6, Q7) %>%
+  mutate(full_comm = paste(Q5, Q6,Q7, sep = " ")) %>%
+  mutate(full_comm = str_replace_all(full_comm, "NA", "")) %>%
+  mutate(full_comm = str_squish(full_comm))  %>%
+  select(Q4_NPS_GROUP, full_comm) %>%
+   unnest_tokens(word, full_comm) %>%
     anti_join(stop_words, by = "word") %>%
-    count(group, word, sort = TRUE) %>%
-    group_split(group) # returns a list, one df per group
-}
+    count(Q4_NPS_GROUP,word, sort = TRUE) %>%
+   group_split(Q4_NPS_GROUP) # returns a list, one df per group
 
-save_word_clouds <- function(word_df, group_name, question_name) {
+#make three word clouds based on NPS group
+
+save_word_clouds <- function(word_df, group_name) {
   safe_group <- gsub("[^a-zA-Z0-9]", "_", group_name)
-  filename <- paste0("wordcloud_", question_name, "_", safe_group, ".png")
+  filename <- paste0("wrd_wordcloud", "_", safe_group, ".png")
 
   png(filename, width = 500, height = 500)
+  par(mar = c(0, 0, 6, 0))
   wordcloud(
     words = word_df$word,
     freq = word_df$n,
-    min.freq = 1,
-    max.words = 20,
+    min.freq = 2, 
+    max.words = 30,res=300,
     scale = c(4, 0.8),
     colors = brewer.pal(8, "Dark2"),
     random.order = FALSE
-  )
+    )
+   title(main = group_name, cex.main = 2.5)
   dev.off()
 
   message("Saved: ", filename)
 }
+group_names<-unique(DIS_Data$Q4_NPS_GROUP)
 
-question_list <- c("Q5", "Q6", "Q7")
+safe_group<-gsub("[^a-zA-Z0-9]", "_", group_names[1])
+filename <- paste0("wrd_wordcloud", "_", safe_group, ".png")
 
-for (q in question_list) {
-  message("Processing ", q)
-
-  # Get word counts per group
-  word_lists <- make_word_list_by_group(DIS_Data, q)
-
-  # Match group names to word list (group_split returns data frames with attr "group")
-  group_names <- unique(DIS_Data$Q4_NPS_GROUP)
-
-  # Loop through and save each group’s word cloud
-  walk2(word_lists, group_names, ~save_word_clouds(.x, .y, q))
-}
-
-
+walk2(combined_word_cloud, group_names, ~save_word_clouds(.x, .y))
 ```
 
 
+
+<div style="overflow-x: auto; white-space: nowrap;">
+  <img src="wrd_wordcloud_Detractor.png" style="height: 280px; display: inline-block; margin-right: 10px;">
+  <img src="wrd_wordcloud_Passive.png" style="height: 280px; display: inline-block; margin-right: 10px;">
+  <img src="wrd_wordcloud_Promoter.png" style="height: 280px; display: inline-block;">
+</div>
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+
 
 DIS_Data2<- DIS_Data %>%
   filter(Q4_NPS_GROUP == "Promoter") %>%
   select(Q2,Q4_NPS_GROUP, Q5, Q6, Q7)
 
-reactable(DIS_Data2)
+
+# each fragment is searched for separately with match size >= # of fragments
+# size > length happens when something like city(_id)? returns two positive matches
+js_filter <-  JS(
+  "function(rows, columnId, filterValue) {
+      // rows = [{'table': 1, 'field': 'city'}, {'table': 2, 'field': 'city city_id'}] 
+      // columnId = 'field'
+      // filterValue = 'city(_id)?'
+      try {
+        const pattern = filterValue.split(' ')
+        const find = RegExp(`(${pattern.join('|')})+`, 'gi')
+        return rows.filter(
+          row => new Set(row.values[columnId].match(find)).size >= pattern.length
+        )
+      } catch(e) {
+          return rows
+      }
+       
+  }"
+)
+
+# highlight all fragment occurrences string matches
+js_match_style <- JS(
+  "function(cellInfo) {
+    try {
+      let filterValue = cellInfo.filterValue
+      let pattern = filterValue.split(' ').filter(n => n).sort().join('|')
+      let regexPattern = new RegExp('(' + pattern + ')', 'gi')
+      let replacement = '<span style=\"color:black;font-weight:bold;\">$1</span>'
+      return cellInfo.value.replace(regexPattern, replacement)
+    } catch(e) {
+        return cellInfo.value
+    }
+  }"
+)
+
+
+reactable(DIS_Data2,
+          searchable = TRUE,highlight = TRUE,
+            columns = list(
+              Q2 = colDef(name = "County/ELC", filterable = T,
+                          filterMethod = js_filter,
+                          cell = js_match_style,
+                          sortable = T),
+              Q4_NPS_GROUP = colDef(name = "NPS Group"),
+              Q5 = colDef(name = "Question 5",
+                          filterable = TRUE,
+                          filterMethod = js_filter,
+                          cell = js_match_style,
+                          html = TRUE,
+                          sortable = F),
+              Q6 = colDef(name = "Question 6",
+                          filterable = TRUE,
+                          filterMethod = js_filter,
+                          cell = js_match_style,
+                          html = TRUE,
+                          sortable = F),
+              Q7 = colDef(
+                          name = "Question 7",
+                          filterable = TRUE,
+                          filterMethod = js_filter,
+                          cell = js_match_style,
+                          html = TRUE,
+                          sortable = F)
+
+
+            ))
 
 
 ```
