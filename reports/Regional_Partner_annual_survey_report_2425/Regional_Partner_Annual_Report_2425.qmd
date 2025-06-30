@@ -1,11 +1,15 @@
 ---
-title: "Regional Partner Annual Survey 2024-25"
+title: "District POC Annual Survey 2024-25"
 author: "NWRI D Team"
 output-dir: folder1
 format:
   html:
     toc: true
-    css: styles.css
+    toc-location: left
+    toc-title: "Contents"
+    page-layout: full
+    toc-depth: 2
+    toc-floating: true
 editor: visual
 ---
 
@@ -82,8 +86,10 @@ ggsave("nps_bar_dot.png", p,
        bg = "transparent")  # optional: transparent background
 
 ```
+## NPS Score: `{r} NPS_reg$NPS`
+
 <div style="height: 100px; overflow: hidden; display: flex; justify-content: center;">
-  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-50px);">
+  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-60px);">
 </div>
 
 # Overview

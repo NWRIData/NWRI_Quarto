@@ -5,7 +5,11 @@ output-dir: folder1
 format:
   html:
     toc: true
-    css: styles.css
+    toc-location: left
+    toc-title: "Contents"
+    page-layout: full
+    toc-depth: 2
+    toc-floating: true
 editor: visual
 ---
 
@@ -123,8 +127,10 @@ ggsave("nps_bar_dot.png", p,
        bg = "transparent")  # optional: transparent background
 
 ```
+## NPS Score: `{r} NPS$NPS`
+
 <div style="height: 100px; overflow: hidden; display: flex; justify-content: center;">
-  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-50px);">
+  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-60px);">
 </div>
 
 # Overview
@@ -273,12 +279,6 @@ walk2(combined_word_cloud, group_names, ~save_word_clouds(.x, .y))
   <img src="wrd_wordcloud_Promoter.png" style="height: 300px; display: inline-block;">
 </div>
 
-<script>
-  window.addEventListener("DOMContentLoaded", function() {
-    const scroller = document.getElementById("wordcloud-scroll");
-    scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
-  });
-</script>
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
