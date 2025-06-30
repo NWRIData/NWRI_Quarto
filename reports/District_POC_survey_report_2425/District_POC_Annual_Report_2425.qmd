@@ -227,7 +227,8 @@ combined_word_cloud<-DIS_Data %>%
   select(Q4_NPS_GROUP, Q5, Q6, Q7) %>%
   mutate(full_comm = paste(Q5, Q6,Q7, sep = " ")) %>%
   mutate(full_comm = str_replace_all(full_comm, "NA", "")) %>%
-  mutate(full_comm = str_squish(full_comm))  %>%
+  mutate(full_comm = str_squish(full_comm))  %>% 
+  mutate(full_comm = str_to_lower(full_comm)) %>%
   select(Q4_NPS_GROUP, full_comm) %>%
    unnest_tokens(word, full_comm) %>%
     anti_join(stop_words, by = "word") %>%
@@ -246,7 +247,7 @@ save_word_clouds <- function(word_df, group_name) {
     words = word_df$word,
     freq = word_df$n,
     min.freq = 2, 
-    max.words = 30,res=300,
+    max.words = 20,res=300,
     scale = c(4, 0.8),
     colors = brewer.pal(8, "Dark2"),
     random.order = FALSE
@@ -266,11 +267,19 @@ walk2(combined_word_cloud, group_names, ~save_word_clouds(.x, .y))
 
 
 
-<div style="overflow-x: auto; white-space: nowrap;">
-  <img src="wrd_wordcloud_Detractor.png" style="height: 280px; display: inline-block; margin-right: 10px;">
-  <img src="wrd_wordcloud_Passive.png" style="height: 280px; display: inline-block; margin-right: 10px;">
-  <img src="wrd_wordcloud_Promoter.png" style="height: 280px; display: inline-block;">
+<div id="wordcloud-scroll" style="overflow-x: auto; white-space: nowrap;">
+  <img src="wrd_wordcloud_Detractor.png" style="height: 300px; display: inline-block; margin-right: 10px;">
+  <img src="wrd_wordcloud_Passive.png" style="height: 300px; display: inline-block; margin-right: 10px;">
+  <img src="wrd_wordcloud_Promoter.png" style="height: 300px; display: inline-block;">
 </div>
+
+<script>
+  window.addEventListener("DOMContentLoaded", function() {
+    const scroller = document.getElementById("wordcloud-scroll");
+    scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
+  });
+</script>
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
 
