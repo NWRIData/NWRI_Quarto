@@ -91,7 +91,6 @@ types<-DIS_Data %>%
 nrow(subset(types, type == "District"))
 ```
 
-
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 #NPS score graph
 
@@ -138,21 +137,22 @@ ggsave("nps_bar_dot.png", p,
        bg = "transparent")  # optional: transparent background
 
 ```
+
 ## NPS Score: `{r} NPS$NPS`
 
-<div style="height: 120px; overflow: hidden; display: flex; justify-content: center;">
-  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-90px);">
-</div>
+::: {style="height: 120px; overflow: hidden; display: flex; justify-content: center;"}
+<img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-90px);"/>
+:::
 
 # Overview
 
 There was a total of `{r} length(unique(DIS_Data$ResponseId))` responders from `{r} total_numbers$n[total_numbers$type == "District"]` Districts and `{r} total_numbers$n[total_numbers$type == "ELC"]` ELCs. The overall NPS was `{r} NPS$NPS` while the customer satisfaction rate was `{r} cs_score$cust_perc`% [^1].
 
-The NPS for District POC was `{r} NPS_NONELC$NPS ` and the customer satisfaction rate was `{r} cs_scorenonELC$cust_perc`% (sample size: `{r} nrow(subset(types, type == "District"))` responders).
-
-The NPS for ELCs was `{r} NPS_ELC$perc ` and the customer satisfaction rate was `{r} cs_scoreELC$cust_perc`% (sample size: `{r} nrow(subset(types, type == "ELC"))` responders).
-
 [^1]: We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.
+
+The NPS for District POC was `{r} NPS_NONELC$NPS` and the customer satisfaction rate was `{r} cs_scorenonELC$cust_perc`% (sample size: `{r} nrow(subset(types, type == "District"))` responders).
+
+The NPS for ELCs was `{r} NPS_ELC$perc` and the customer satisfaction rate was `{r} cs_scoreELC$cust_perc`% (sample size: `{r} nrow(subset(types, type == "ELC"))` responders).
 
 # Flyer info
 
@@ -183,7 +183,6 @@ flyertotal<-left_join(flyer_levels, flyer_levels1, by = "ResponseId") %>%
   left_join(., flyer_levels2, by = "ResponseId")
 
 ```
-
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
 
@@ -228,7 +227,7 @@ flyertotal %>%
 
 # Text Feedback
 
-We generated word cloud based for each NPS group (Promoters, Detractors, and Passives) using all the answers across questions 5, 6, 7. 
+We generated word cloud based for each NPS group (Promoters, Detractors, and Passives) using all the answers across questions 5, 6, 7.
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 #generate word cloud by NPS group and save them for use with table
@@ -280,13 +279,9 @@ group_names<-c("Q5", "Q6", "Q7")
 walk2(combined_word_cloud, group_names, ~save_word_clouds(.x, .y))
 ```
 
-
-
-<div id="wordcloud-scroll" style="overflow-x: auto; white-space: nowrap;">
-  <img src="wordcloud_Q5.png" style="height: 400px; display: inline-block; margin-right: 10px;">
-  <img src="wordcloud_Q6.png" style="height: 400px; display: inline-block; margin-right: 10px;">
-  <img src="wordcloud_Q7.png" style="height: 400px; display: inline-block;">
-</div>
+::: {#wordcloud-scroll style="overflow-x: auto; white-space: nowrap;"}
+<img src="wordcloud_Q5.png" style="height: 400px; display: inline-block; margin-right: 10px;"/> <img src="wordcloud_Q6.png" style="height: 400px; display: inline-block; margin-right: 10px;"/> <img src="wordcloud_Q7.png" style="height: 400px; display: inline-block;"/>
+:::
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
@@ -362,4 +357,3 @@ reactable(DIS_Data2,
 
 
 ```
-
