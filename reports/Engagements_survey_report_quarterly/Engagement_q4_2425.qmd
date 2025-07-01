@@ -23,54 +23,157 @@ require(kableExtra)
 ```
 
 ```{r, message=FALSE,include = FALSE}
-
 dataq4<-readRDS("data/2024_2025/survey_data_q4_2425.rds")
 dataq3<-readRDS("data/2024_2025/survey_data_q3_2425.rds")
 dataq2<-readRDS("data/2024_2025/survey_data_q2_2425.rds")
 dataq1<-readRDS("data/2024_2025/survey_data_q1_2425.rds")
 
-regional_dataq4<-dataq4$regional
-regional_dataq3<-dataq3$regional
-regional_dataq2<-dataq2$regional
-regional_dataq1<-dataq1$regional
+engage_dataq4_s<-dataq4$engagement_short
+engage_dataq4_l<-dataq4$engagement_long
+
+engage_dataq3_s<-dataq3$engagement_short
+engage_dataq3_l<-dataq3$engagement_long
+
+engage_dataq2_s<-dataq2$engagement_short
+engage_dataq2_l<-dataq2$engagement_long
+
+engage_dataq1_s<-dataq1$engagement_short
+engage_dataq1_l<-dataq1$engagement_long
 
 rm(dataq4)
 rm(dataq3)
 rm(dataq2)
 rm(dataq1)
 
+
+# we need to match questions by short and long
+
+#make a function to extract labels and colnames 
+
+get_labels<-function(data){
+  column_labels <- sapply(data, function(col) as.character(attr(col, "label")))
+questions_s_q1<-tibble(column = colnames(data), 
+           labels = column_labels)
+}
+
+questions_s_q1<-get_labels(data = engage_dataq1_s)
+questions_l_q1<-get_labels(data = engage_dataq1_l)
+questions_s_q2<-get_labels(data = engage_dataq2_s)
+questions_l_q2<-get_labels(data = engage_dataq2_l)
+questions_s_q3<-get_labels(data = engage_dataq3_s)
+questions_l_q3<-get_labels(data = engage_dataq3_l)
+questions_s_q4<-get_labels(data = engage_dataq4_s)
+questions_l_q4<-get_labels(data = engage_dataq4_l)
+
+#quick function to create a table that 
+#has a master set of the questions and column names
+
+get_master<-function(short, long){
+  cols_keep<-intersect((short$labels), 
+                     (long$labels))
+  #now we filter for only those labels 
+q_keep_s<-short %>%
+  filter(labels %in% cols_keep) %>%
+  rename(column_short=column)
+q_keep_l<-long %>%
+  filter(labels %in% cols_keep) %>%
+  rename(column_long=column)
+
+master_key_ques<-left_join(q_keep_s, q_keep_l, by = "labels")
+
+return(master_key_ques)
+}
+master_key_ques<-get_master(short = questions_s_q1, 
+                            long = questions_l_q1)
+master_key_ques_q2<-get_master(short = questions_s_q2, 
+                               long = questions_l_q2)
+master_key_ques_q3<-get_master(short = questions_s_q3, 
+                               long = questions_l_q3)
+master_key_ques_q4<-get_master(short = questions_s_q4, 
+                               long = questions_l_q4)
+
+
+
+#now cut down  datasets to just the common questions
+#and combine them
+
+master_join_quart<-function(short,long, masterkey){
+  engage_dataq_s<-short %>%
+  dplyr::select(all_of(masterkey$column_short))
+
+  engage_dataq_l<-long %>%
+  dplyr::select(all_of(masterkey$column_long))
+  
+  #now change out the colnames to reflect just one format
+
+for(i in seq_along(engage_dataq_s)){
+
+  if(colnames(engage_dataq_s)[i] == colnames(engage_dataq_l)[i]){
+    
+  }else{
+    colnames(engage_dataq_s)[i] <- masterkey$column_long[masterkey$column_long ==  colnames(engage_dataq_l)[i]]
+  }
+}
+
+joined_full_q1<-rbind(engage_dataq_s,engage_dataq_l)
+
+return(joined_full_q1)
+
+}
+
+final_join_q1<-master_join_quart(short = engage_dataq1_s,
+                  long = engage_dataq1_l,masterkey = master_key_ques)
+
+final_join_q2<-master_join_quart(short = engage_dataq2_s,
+                  long = engage_dataq2_l,masterkey = master_key_ques_q2)
+
+final_join_q3<-master_join_quart(short = engage_dataq3_s,
+                  long = engage_dataq3_l,masterkey = master_key_ques_q3)
+
+final_join_q4<-master_join_quart(short = engage_dataq4_s,
+                  long = engage_dataq4_l,masterkey = master_key_ques_q4)
+
+
 #get some basic numbers up front for Q4
-total_responders<-nrow(regional_dataq4)
-total_partners<- regional_dataq4 %>%
-  group_by(Q1) %>%
-  count() 
-total_NPS<-regional_dataq4 %>%
+
+total_responders<-nrow(final_join_q4)
+
+engage_nps_q4<-final_join_q4 %>%
+  dplyr::select(Q20)
+
+
+total_NPS<-engage_nps_q4 %>%
   group_by(Q20) %>%
   count() %>%
   rename(NPS_question = Q20,
          Responders = n) %>%
-  ungroup() %>%
+  ungroup()  %>%
   mutate(Response_percent = 100 - round(100*(Responders/sum(Responders)),1))
+
+
 
 NA_peeps<-total_NPS %>%
   filter(is.na(NPS_question))
 
-#this is the percent response rate to the NPS question
-NA_peeps$Response_percent
 #calculate the total number of people responding to the NPS question 
 responded_nps_total<-total_responders-NA_peeps$Responders
 
-regional_data_timeq4<-regional_dataq4 %>%
+
+#add a column for 
+final_join_q4<-final_join_q4 %>%
   mutate(Quarter = "Quarter 4")
-regional_data_timeq3<-regional_dataq3 %>%
+
+final_join_q3<-final_join_q3 %>%
   mutate(Quarter = "Quarter 3")
-regional_data_timeq2<-regional_dataq2 %>%
+
+final_join_q2<-final_join_q2 %>%
   mutate(Quarter = "Quarter 2")
-regional_data_timeq1<-regional_dataq1 %>%
+
+final_join_q1<-final_join_q1 %>%
   mutate(Quarter = "Quarter 1")
 ```
 
-```{r,include = FALSE}
+```{r, message=FALSE,include = FALSE}
 #get net promoter score for all
 
 
@@ -95,10 +198,10 @@ if(length(NPS_col)>1){
   }
 return(NPS_col)}
 
-NPS_colQ4<-get_col_nps(regional_dataq4)
-NPS_colQ3<-get_col_nps(regional_dataq3)
-NPS_colQ2<-get_col_nps(regional_dataq2)
-NPS_colQ1<-get_col_nps(regional_dataq1)
+NPS_colQ4<-get_col_nps(final_join_q4)
+NPS_colQ3<-get_col_nps(final_join_q3)
+NPS_colQ2<-get_col_nps(final_join_q2)
+NPS_colQ1<-get_col_nps(final_join_q1)
 
 calc_nps_total<-function(x,y){
 
@@ -108,9 +211,12 @@ calc_nps_total<-function(x,y){
   mutate( NPS_CAT = ifelse(.data[[y]] >= 9,
                            "Promoter",
                            ifelse(.data[[y]] <= 6,"Detractor",
-                                  "Passive"))) %>%
-  cbind(.,x$Q1)
-Total_NPS = NPS_labels%>%
+                                  "Passive"))) 
+  
+  if("Detractor" %in% NPS_labels$NPS_CAT){
+    print("No detractors")
+    
+    Total_NPS = NPS_labels%>%
   drop_na() %>%
   group_by(NPS_CAT) %>%
   summarise(n = n()) %>%
@@ -119,43 +225,44 @@ Total_NPS = NPS_labels%>%
   pivot_wider(id_cols =!n,names_from = "NPS_CAT", values_from = "prop") %>%
   mutate(NPS = round(Promoter - Detractor,2)) 
 return(Total_NPS)
+  }else{
+    Total_NPS = NPS_labels%>%
+  drop_na() %>%
+  group_by(NPS_CAT) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  mutate(prop = 100*(n/sum(n))) %>%
+  pivot_wider(id_cols =!n,names_from = "NPS_CAT", values_from = "prop") %>%
+  mutate(NPS = round(Promoter)) 
+return(Total_NPS)
+  }
+
 }
 
-Total_NPSQ4<-calc_nps_total(regional_dataq3, y = NPS_colQ4)
-Total_NPSQ3<-calc_nps_total(regional_dataq3, y = NPS_colQ3)
-Total_NPSQ2<-calc_nps_total(regional_dataq2, y = NPS_colQ2)
-Total_NPSQ1<-calc_nps_total(regional_dataq1, y = NPS_colQ1)
+Total_NPSQ4<-calc_nps_total(final_join_q4, y = NPS_colQ4)
+Total_NPSQ3<-calc_nps_total(final_join_q3, y = NPS_colQ3)
+Total_NPSQ2<-calc_nps_total(final_join_q2, y = NPS_colQ2)
+Total_NPSQ1<-calc_nps_total(final_join_q1, y = NPS_colQ1)
 
-
-Q4_totals<-regional_data_timeq4 %>%
+Q4_totals<-final_join_q4 %>%
   summarise(total_n = n(),
-            total_answer = sum(!is.na(Q20)),
-            total_answer_perc = round(100*(total_answer/total_n),1),
-            NPS = Total_NPSQ4$NPS) %>%
-  dplyr::select(-total_answer)
+            total_na_q20 = sum(is.na(Q20)),
+            NPS = Total_NPSQ3$NPS)
 
-
-Q3_totals<-regional_data_timeq3 %>%
+Q3_totals<-final_join_q3 %>%
   summarise(total_n = n(),
-            total_answer = sum(!is.na(Q20)),
-            total_answer_perc = round(100*(total_answer/total_n),1),
-            NPS = Total_NPSQ3$NPS) %>%
-  dplyr::select(-total_answer)
+            total_na_q20 = sum(is.na(Q20)),
+            NPS = Total_NPSQ3$NPS)
 
-Q2_totals<-regional_data_timeq2 %>%
+Q2_totals<-final_join_q2 %>%
   summarise(total_n = n(),
-            total_answer = sum(!is.na(Q20)),
-            total_answer_perc = round(100*(total_answer/total_n),1),
-            NPS = Total_NPSQ2$NPS) %>%
-  dplyr::select(-total_answer)
+            total_na_q20 = sum(is.na(Q20)),
+            NPS = Total_NPSQ2$NPS)
 
-Q1_totals<-regional_dataq1 %>%
-   summarise(total_n = n(),
-            total_answer = sum(!is.na(Q20)),
-            total_answer_perc = round(100*(total_answer/total_n),1),
-            NPS = Total_NPSQ1$NPS) %>%
-  dplyr::select(-total_answer)
-
+Q1_totals<-final_join_q1 %>%
+  summarise(total_n = n(),
+            total_na_q20 = sum(is.na(Q20)),
+            NPS = Total_NPSQ1$NPS)
 
 Q4_totals<-Q4_totals %>%
   mutate(Quarter = 4)
@@ -169,17 +276,20 @@ Q2_totals<-Q2_totals %>%
 Q1_totals<-Q1_totals %>%
   mutate(Quarter = 1)
 
-temporal_nps<-rbind(Q1_totals,Q2_totals,Q3_totals, Q4_totals) 
+temporal_nps<-rbind(Q1_totals,Q2_totals, Q3_totals,Q4_totals) 
+
+#change in respondents q3 to q4
+total_change = Q4_totals$total_n - Q3_totals$total_n
 
 #difference in NPS 
-diff_nps <- abs(temporal_nps$NPS[temporal_nps$Quarter == 4]-temporal_nps$NPS[temporal_nps$Quarter == 3])
+diff_nps <- (temporal_nps$NPS[temporal_nps$Quarter == 4]-temporal_nps$NPS[temporal_nps$Quarter == 3])
 
 perc_diff<-round(100*(diff_nps/temporal_nps$NPS[temporal_nps$Quarter == 4]),1)
 
 #change in respondents
 total_change = Q4_totals$total_n - Q3_totals$total_n
 
-total_NPS<-regional_data_timeq4 %>%
+total_NPS<-final_join_q3 %>%
   drop_na(Q20)%>%
   group_by(Q20) %>%
   count() %>%
@@ -191,76 +301,13 @@ total_NPS<-regional_data_timeq4 %>%
 ```
 
 ```{r,include=FALSE}
-#calculating percent of NPS question answered 
-regional_part_df<-regional_data_timeq4 %>%  drop_na(Q1) %>%
-  group_by(Q1) %>% 
-  summarise(n = n(),
-            answerednps = sum(!is.na(Q20))) %>%
-  ungroup() %>%
-  mutate(Percent =round(100*(answerednps/n),1)) %>%
-  dplyr::select(-answerednps) %>%
-  arrange(desc(Percent))
-
-
-#calc NPS by regional partner:
-
-reg_npsQ4<- regional_data_timeq4 %>%
-  dplyr::select(all_of(NPS_colQ4)) %>%
-  mutate(across(everything(), ~ as.numeric(.))) %>%
-  mutate( NPS_CAT = ifelse(.data[[NPS_colQ4]] >= 9,
-                           "Promoter",
-                           ifelse(.data[[NPS_colQ4]] <= 6,"Detractor",
-                                  "Passive"))) %>%
-  cbind(.,regional_data_timeq4$Q1) %>%
-  rename(partner = `regional_data_timeq4$Q1`) %>%
-    drop_na() %>%
-  group_by(partner, NPS_CAT) %>%
-  summarise(n = n()) %>%
-  group_by(partner) %>%
-  mutate(prop = 100*(n/sum(n))) %>%
-    pivot_wider(id_cols ="partner",names_from = "NPS_CAT", 
-                values_from = "prop",
-                values_fill = 0) %>%
-  mutate(NPS = round(Promoter - Detractor,2)) %>%
-  dplyr::select(partner, NPS)
-
-
-regional_part_df_tableQ4<-left_join(regional_part_df,reg_npsQ4, by = c("Q1" = "partner")) %>%
-  arrange(desc(NPS))
-
-#maximum nps partners
-maxnps_reg<-regional_part_df_tableQ4 %>% filter(NPS == max(regional_part_df_tableQ4$NPS, na.rm = T)) %>%
-  dplyr::select(Q1) 
-
-minnps_reg<-regional_part_df_tableQ4 %>% filter(NPS == min(regional_part_df_tableQ4$NPS,na.rm = T)) %>%
-  dplyr::select(Q1) 
-
-
-```
-
-```{r,include=FALSE}
 #calculating percent of questions answered 
-percents<- regional_data_timeq4 %>%
+percents<- final_join_q4 %>%
   select(starts_with("Q")) %>%
   mutate(percent_na = rowMeans(is.na(.)) * 100) %>%
   ungroup()
 percentabove50=100*round(length(which(percents$percent_na>50))/nrow(percents),1)
-
-#month with the most responses
-max_response<-regional_data_timeq4 %>%
-   mutate(week = paste(year(RecordedDate), sprintf("%02d", week(RecordedDate)), sep = "-"),
-         month = floor_date(RecordedDate, "month"),
-         month_label = factor(format(month, "%b"), 
-                              levels = month.abb),
-         year_month = format(month, "%Y-%m"))%>%
-  group_by(month_label) %>%
-  count() 
-
-max_response_month <- as.character(max_response$month_label[max_response$n == max(max_response$n)])
-max_response_number <- max(max_response$n)
-
 ```
-
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 #NPS score graph
@@ -280,7 +327,7 @@ NPS_Scale<-data.frame(
   
 )
 
-Ourdata = data.frame(x_mas= "NPS_score",y = 50+100*((86/100)/2))
+Ourdata = data.frame(x_mas= "NPS_score",y = 50+100*((88.14/100)/2))
 
 p<-ggplot(data = NULL) +
   geom_col(data = NPS_Scale,
@@ -303,7 +350,7 @@ p<-ggplot(data = NULL) +
   coord_cartesian(clip = "off")  # avoid clipping labels
 
 # Save tightly cropped
-ggsave("nps_bar_dot.png", p,
+ggsave("nps_bar_dotq4.png", p,
        width = 10, height = 3, dpi = 500,
        bg = "transparent")  # optional: transparent background
 
@@ -311,30 +358,40 @@ ggsave("nps_bar_dot.png", p,
 ## NPS Score: `{r} Total_NPSQ3$NPS`
 
 <div style="height: 120px; overflow: hidden; display: flex; justify-content: center;">
-  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-90px);">
+  <img src="nps_bar_dotq4.png" style="width: 100%; transform: translateY(-90px);">
 </div>
 
-## Quarter 4 Overview:
+## Quarter 4 Overview 
 
 -   Total survey respondents: `{r} total_responders`
     -   `{r} responded_nps_total` (`{r} NA_peeps$Response_percent`%) respondents answered the NPS question.
     -   `{r} length(which(percents$percent_na>50))` (`{r} percentabove50`%) respondents answered 50% or more of the survey questions.
 -   Overall NPS: `{r} Total_NPSQ3$NPS`
-    -   Highest NPS: `{r} max(regional_part_df_tableQ4$NPS,na.rm =T)` By: `{r} maxnps_reg$Q1`
-    -   Lowest NPS: `{r} min(regional_part_df_tableQ4$NPS,na.rm =T)` By: `{r} minnps_reg$Q1`
--   The month with the most responses was `{r} max_response_month` with `{r} max_response_number` responses.
 
-## Quarter 4 compared to the previous Quarter:
+
+## Data overview for Quarter 4 compared to Quarter 3
 
 -   There were `{r} abs(total_change)` `{r} if (total_change >= 0) "more" else "less"` respondents.
--   The NPS score saw a `{r} if (diff_nps >= 0) "increase" else "decrease"` of `{r} diff_nps` (`{r} perc_diff`%) (Table 1).
+-   The NPS score saw an `{r} if (diff_nps >= 0) "increase" else "decrease"` of `{r} (diff_nps)` (`{r} perc_diff`%) (Table 1).
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
-#| out-width: 65%
+#| out-width: 100%
 #| #| label: fig_histogram
 #| fig-cap: "Number of survey responses by month"
 
-response_time <- rbind(regional_data_timeq2, regional_data_timeq1, regional_data_timeq3, regional_data_timeq4) %>%
+time_q4<-final_join_q4 %>%
+ dplyr::select(RecordedDate, Quarter)
+time_q3<-final_join_q3 %>%
+ dplyr::select(RecordedDate, Quarter)
+time_q2<-final_join_q2 %>%
+ dplyr::select(RecordedDate, Quarter) 
+time_q1<-final_join_q1 %>%
+ dplyr::select(RecordedDate, Quarter) 
+
+
+
+response_time <- rbind(time_q2, time_q1, time_q3, time_q4) %>%
+  dplyr::select(RecordedDate, Quarter) %>%
   mutate(week = paste(year(RecordedDate), sprintf("%02d", week(RecordedDate)), sep = "-"),
          month = floor_date(RecordedDate, "month"),
          month_label = factor(format(month, "%b"), 
@@ -352,216 +409,126 @@ response_time <- rbind(regional_data_timeq2, regional_data_timeq1, regional_data
   scale_y_continuous(expand = c(0,0)) +
   scale_fill_viridis_d(option = "E")
 response_time
+```
 
 
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
+
+kableExtra::kable(
+  temporal_nps, "html",
+  col.names = c("Total Respondents", "No response (NPS)", "Net Promoter Score", "Quarter"),
+  align = "c",
+  caption = "Numbers on: survey response, NPS question not answered, and net promoter score across quarters"
+) %>%
+  kableExtra::kable_styling(latex_options = c("striped", "HOLD_position"))
+
+```
+
+
+# DATA DIVE
+
+```{r, include=FALSE}
+languages<-final_join_q4 %>%
+  group_by(UserLanguage) %>%
+  count()
+es_numb<- languages %>% filter(UserLanguage == "ES")
+en_numb<- languages %>% filter(UserLanguage == "EN")
+
+
+#also calculate NPS by language
+calc_nps_total(x = final_join_q4 %>% filter(UserLanguage == "ES") %>%
+                 select(Q20), y = NPS_colQ3)
+calc_nps_total(x = final_join_q4 %>% filter(UserLanguage == "EN") %>%
+                 select(Q20), y = NPS_colQ3)
+
+```
+
+Out of `{r} total_responders` respondents, `{r} es_numb$n` used the Spanish version of the survey while `{r} en_numb$n` used the English version.
+
+
+```{r, include=FALSE}
+#select columns for question 2
+q2q1<-final_join_q1 %>%
+  select(starts_with("Q2_"))
+q2q2<-final_join_q2 %>%
+  select(starts_with("Q2_"))
+q2q3<-final_join_q3 %>%
+  select(starts_with("Q2_"))
+q2q4<-final_join_q4 %>%
+  select(starts_with("Q2_"))
+
+combined<-rbind(q2q4) 
+#now change column names to the answers
+
+colnames<-lapply(seq_along(combined), function(x){
+  return(unique(na.omit(combined[,x])))
+})
+for(i in seq_along(colnames)){
+  if(nrow(colnames[[i]])>1){
+    colnames(combined)[i]<-"Other"
+  }else{
+     colnames(combined)[i]<-colnames[[i]]
+  }
+
+}
+
+
+
+total_response_values<-combined %>%
+  dplyr::select(-`Other (please describe):`) %>%
+  mutate_all(., ~ifelse(is.na(.), ., 1)) %>%
+  mutate(ID = 1:nrow(.)) %>%
+  pivot_longer(cols = c(`Information about New Worlds Reading Initiative`,
+                        `New Worlds Reading Event Activities`,
+                        Meal,
+                        Other), names_to = "Selection", values_to = "total") %>%
+  drop_na() %>%
+  group_by(Selection) %>%
+  summarise(n = n())
 ```
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
 
-kableExtra::kable(temporal_nps,"pipe",
-                  col.names = c("Total Survey Respondents",
-                                "Response rate of NPS question(%)",
-                                "Net Promoter Score", "Quarter"),
+kableExtra::kable(total_response_values,"html",escape = FALSE,
+                  col.names = c("Possible choices", "Total"),
                   align = "c",
-                  caption = "Numbers on: survey response, NPS question not answered, and net promoter score across quarters") %>%
-  kableExtra::kable_styling(latex_options = "striped")
-
+                  caption = "Answers to the question, What was the favorite part of this event?") %>%
+  kableExtra::column_spec(1, width = "4cm") %>%
+  kableExtra::column_spec(2, width = "4cm")  %>%
+  kableExtra::kable_styling(latex_options = c("striped","HOLD_position"))
 ```
 
-Additionally across the `{r} length(na.omit(total_partners$Q1))` regional partners, the distribution of these respondents to the NPS question and the NPS for each partner in Q3 are as follows:
-
-```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
-kableExtra::kable(regional_part_df_tableQ4,"pipe",
-                  col.names = c("Regional Partner", 
-                                "Survey Takers", 
-                                "Response rate to NPS question (%)",
-                                "NPS"),
-                  align = "c",
-                  caption = "Table showing NPS across regional partners")%>%
-  kableExtra::kable_styling(latex_options = "striped") %>%
-kableExtra::column_spec(3, width = "3cm")
-  
-
-```
-
-# Q4 Data Dive
-
-## Details on NPS across regional partners
-
-The frequency of the possible answers selected, ranging from 0 to 10, for the NPS question across the six largest regional partners (based on respondent numbers) are shown in the figure below for Q2.
-
-```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
-#| out-width: 100%
-#| #| label: fig_histogram
-#| fig-cap: "Distribution of scores (0-10) to the net promotor question from the survey across the top 6 regional partners in terms of respondent numbers. Orange = 0-6, blue = 6-9, green = 9-10"
-
-regional_part_df4<-regional_dataq4 %>%  drop_na(Q1) %>%
-  group_by(Q1) %>% count() %>%
-  ungroup() %>%
-  mutate(Percent =100*round(n/sum(n),1)) %>%
-  arrange(desc(n)) %>%
-  slice(1:6)
-
-plotdata<-regional_dataq4 %>%
-  drop_na(Q1) %>%
-  filter(Q1 %in% as.character(regional_part_df4$Q1)) 
-ggplot(data = plotdata) +
-  scale_x_continuous(breaks =scales::breaks_pretty()) +
-  labs(y = "Responder count", x = "NPS question scores") +
-  annotate("rect",xmin=0, xmax=6, ymin=0, ymax=Inf, fill = "#E69F00",
-              alpha = 0.5 )+
-    annotate("rect",xmin=6, xmax=9, ymin=0, ymax=Inf, fill = "#56B4E9",
-              alpha = 0.5 )+
-    annotate("rect",xmin=9, xmax=10, ymin=0, ymax=Inf, fill = "#009E73",
-              alpha = 0.5 )+
-    geom_histogram(data = plotdata, aes(x = as.integer(Q20)), binwidth = 1) +
-  facet_wrap(~Q1, scales = "free_y",
-             labeller =label_wrap_gen(width=20)) +
-  theme_bw() 
-```
-
-```{r,include=FALSE, warning=FALSE}
-#let's look and see how many people do not have an enrolled child
-regional_data_eleigibility<-regional_dataq4 %>%
-  group_by(Q6) %>%
+```{r, include=FALSE}
+table_answer<-combined %>%
+  dplyr::select(-`Other (please describe):`) %>%
+  mutate_all(., ~ifelse(is.na(.), ., 1)) %>%
+  mutate(ID = 1:nrow(.)) %>%
+  group_by(`Information about New Worlds Reading Initiative`,`New Worlds Reading Event Activities`,Meal,Other) %>%
   count() %>%
-  ungroup() %>% mutate(percent = round(100*(n/sum(n)),1))
-```
+ # Add completeness column to count non-NA values per row
+mutate(completeness = rowSums(across(-n) == 1, na.rm = TRUE)) %>%
+# Arrange by completeness first, then prioritize column order
+  arrange(desc(completeness), 
+          desc(`Information about New Worlds Reading Initiative`), 
+          desc(`New Worlds Reading Event Activities`), 
+          desc(Meal), 
+          desc(Other)) %>%
+  select(-completeness) %>%
+  ungroup()%>% # Optionally remove the completeness column
+  # Replace all 1s with a checkmark symbol
+mutate(across(-n, ~ ifelse(. == 1, "&#10003;", .)))
 
-While most people selected 10 for the NPS question certain regional partners had higher frequencies of passive scores (6-9, bars in the blue region of Figure 2). Detractors (0-6) were sparse but still appeared in almost all regional partner events.
-
-## Details on how likely respondents would enroll their child in NWRI
-
-Out of all responses, `{r} regional_data_eleigibility$percent[regional_data_eleigibility$Q6 == "No"& !is.na(regional_data_eleigibility$Q6)]`% (`{r} regional_data_eleigibility$n[regional_data_eleigibility$Q6 == "No"& !is.na(regional_data_eleigibility$Q6)]` respondents) did not have a child enrolled in NWRI.
-
-```{r,include=FALSE}
-#responders who do not have children in the NWRI
-responder_no_nwri<-regional_dataq3 %>%
-  filter(Q6 == "No") %>%
-  group_by(`Q6-2`) %>%
-  summarise(n = n()) %>%
-  ungroup() %>%
-  mutate(percent = round(100*(n/sum(n)),1))
-
-kableExtra::kable(responder_no_nwri,"pipe",
-                  col.names = c("Would you enroll?", "No.", "%"),
-                  align = "c",
-                  caption = "Responses from people with no child in NWRI when asked if they would they enroll their child in NWRI?") %>%
-   kableExtra::kable_styling(latex_options = "striped")
-```
-
-When these `{r} regional_data_eleigibility$n[regional_data_eleigibility$Q6 == "No"& !is.na(regional_data_eleigibility$Q6)]` respondents were asked if they would consider enrolling their child the responses were as follows:
-
-Note! We auto-detected their responses by matching key words to categorize responses into several groups. Because this approach relies on key words matching not all the responses could be properly assigned a category.
-
-```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
-reasons_why<-regional_dataq4 %>%
-  filter(Q6 == "No" & `Q6-2` == "No") %>%
-  dplyr::select(Q7) %>%
-  drop_na()
-
-wtf<-reasons_why %>%
-  mutate(Q7 = str_to_lower(Q7),
-         Q7 = str_remove_all(Q7, "[[:punct:]]")) %>%
-  mutate(recat = case_when(
-    str_detect(Q7, paste(
-      "doesnt qualify", "didnt qualify", "dont qualify", 
-      "ineligible", "above reading level", "not qualify", 
-      "aboved grade level","not old enough","not eligible",
-      "not going to qualify", "scores were too high",
-      sep = "|")) ~ "Doesn't qualify",
-    
-    str_detect(Q7, paste(
-      "aged out", "age out", "too old", "to old", 
-       "in high school", "in middle school",
-      sep = "|")) ~ "Aged out",
-    
-     str_detect(Q7, paste(
-      "dont have children", "no child", "no children", "childless", 
-      sep = "|")) ~ "No children"
-    
-  ))
-
-reasons_whycat<-reasons_why %>%
-  mutate(Q7 = str_to_lower(Q7),
-         Q7 = str_remove_all(Q7, "[[:punct:]]")) %>%
-  mutate(Reason = case_when(
-    str_detect(Q7, paste(
-      "doesnt qualify", "didnt qualify", "dont qualify", 
-      "ineligible", "above reading level", "not qualify", 
-      "aboved grade level","not old enough","not eligible",
-      "not going to qualify","scores were too high",
-      "doesnt meet the eligibility", "reads above grade level",
-      "reading above their grade", "arent eligible", 
-      "requirement not met",
-      
-      sep = "|")) ~ "Doesn't qualify or not eligible",
-    
-    str_detect(Q7, paste(
-      "aged out", "age out", "too old", "to old", 
-       "in high school", "in middle school", "6th grade", "5th grade",
-      sep = "|")) ~ "Explicitly mentioned aged out",
-    
-     str_detect(Q7, paste(
-      "dont have children", "no child", "no children", "childless", 
-      "dont have small kids", "dont have kids",
-      sep = "|")) ~ "Explicitly mentioned no children"
-    
-  )) %>%
-  group_by(Reason) %>%
-  count() %>%
-  mutate(Reason = ifelse(is.na(Reason), "Unmatched responses", Reason))
-
-kableExtra::kable(reasons_whycat,"pipe",
-                  col.names = c("Reason", "No. of responses"),
-                  align = "c",
-                  caption = "Why will you not enroll your child in NWRI?") %>%
-  kableExtra::kable_styling(latex_options = "striped")
-  
-```
-
-Across regional partners most respondents without an enrolled NWRI child are likely to recommend NWRI. However certain regional partners have a proportion of their respondents saying they were: unsure, preferred not to answer, or they were not likely to recommend NWRI. Figure 3 shows which partners may have higher proportions of these respondents (color in purple).
-
-```{r include=FALSE}
-regional_numbers<-regional_dataq4 %>%
-  filter(Q6 == "No") %>%
-  rename(willapply = `Q6-2`) %>%
-  mutate(willapply = as.character(willapply)) %>%
-  mutate(willapply = ifelse(is.na(willapply), "No Answer",willapply)) %>%
-  count(Q1) %>%
-  rename(respondents_n = n)
 ```
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
-#| out-width: 100%
-#| label: fig_comp_plot
-#| fig-cap: "Response when respondents with no child enrolled in NWRI would consider enrolling their child. Total numbers reflect the total amount of respondents."
 
-part_plot<-regional_dataq4 %>%
-  filter(Q6 == "No") %>%
-  rename(willapply = `Q6-2`) %>%
-  mutate(willapply = as.character(willapply)) %>%
-  mutate(willapply = ifelse(is.na(willapply), "No Answer",willapply)) %>%
-  count(Q1,willapply) %>%
-  group_by(Q1) %>% 
-  mutate(perc = round(100*(n/sum(n)),1)) %>%
-  left_join(., regional_numbers, by = "Q1")
-
-ggplot(data =NULL) +
-  geom_col(data =part_plot, aes(x = Q1, y = perc, fill = willapply)) +
-  geom_text(data = regional_numbers, aes(x = Q1, y= 0,
-                                         label = paste("Total:",respondents_n)),
-            hjust = 0) +
-  coord_flip() +
-   theme_bw() +
-  scale_fill_viridis_d(option = "D") +
-  labs(y = "Response proportions (%)") +
-   theme(axis.title.y =  element_blank(),
-         legend.position = "right",
-         plot.caption.position = "plot") +
-    labs(fill = "Response") +
-  geom_hline(aes(yintercept = 25), lty = 3, linewidth = 0.5, color = "grey") +
-    geom_hline(aes(yintercept = 50), lty = 3, linewidth = 0.5, color = "grey") +
-  geom_hline(aes(yintercept = 75), lty = 3, linewidth = 0.5, color = "grey") 
-
+kableExtra::kable(table_answer,"html",escape = FALSE,
+                  col.names = c("Information about New Worlds Reading Initiative",
+                                "New Worlds Reading Event Activities", "Meal", "Other", "Total"),
+                  align = "c",
+                  caption = "Combinations of answers to the question, What was the favorite part of this event?") %>%
+  kableExtra::column_spec(1, width = "4cm") %>%
+  kableExtra::column_spec(2, width = "4cm")  %>%
+  kableExtra::kable_styling(latex_options = c("striped","HOLD_position"))
 ```
+

@@ -314,7 +314,7 @@ ggsave("nps_bar_dotq4.png", p,
   <img src="nps_bar_dotq4.png" style="width: 100%; transform: translateY(-90px);">
 </div>
 
-## Quarter 4 Overview:
+## Quarter 4 Overview
 
 -   Total survey respondents: `{r} total_responders`
     -   `{r} responded_nps_total` (`{r} NA_peeps$Response_percent`%) respondents answered the NPS question.
@@ -324,7 +324,7 @@ ggsave("nps_bar_dotq4.png", p,
     -   Lowest NPS: `{r} min(regional_part_df_tableQ4$NPS,na.rm =T)` By: `{r} minnps_reg$Q1`
 -   The month with the most responses was `{r} max_response_month` with `{r} max_response_number` responses.
 
-## Quarter 4 compared to the previous Quarter:
+## Quarter 4 compared to the previous Quarter
 
 -   There were `{r} abs(total_change)` `{r} if (total_change >= 0) "more" else "less"` respondents.
 -   The NPS score saw a `{r} if (diff_nps >= 0) "increase" else "decrease"` of `{r} diff_nps` (`{r} perc_diff`%) (Table 1).
