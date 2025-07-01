@@ -91,7 +91,7 @@ p<-ggplot(data = NULL) +
 
 # Save tightly cropped
 ggsave("nps_bar_dot.png", p,
-       width = 10, height = 3, dpi = 300,
+       width = 10, height = 3, dpi = 500,
        bg = "transparent")  # optional: transparent background
 
 ```

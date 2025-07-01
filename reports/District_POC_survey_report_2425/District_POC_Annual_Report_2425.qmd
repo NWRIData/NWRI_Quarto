@@ -134,7 +134,7 @@ p<-ggplot(data = NULL) +
 
 # Save tightly cropped
 ggsave("nps_bar_dot.png", p,
-       width = 10, height = 3, dpi = 300,
+       width = 10, height = 3, dpi = 500,
        bg = "transparent")  # optional: transparent background
 
 ```
@@ -228,13 +228,7 @@ flyertotal %>%
 
 # Text Feedback
 
-We generated word cloud based for each NPS group (Promoters, Detractors, and Passives) using all the answers across questions 5, 6, 7. These questions were:
-
-Question 5: We would love to hear more about why you rated your experience with us the way you did. What specific aspects influenced your rating?
-
-Question 6: What do you like the most about New Worlds Reading and our partnership?
-
-Question 7: What can we do to better serve you and/or families in your district?
+We generated word cloud based for each NPS group (Promoters, Detractors, and Passives) using all the answers across questions 5, 6, 7. 
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 #generate word cloud by NPS group and save them for use with table
