@@ -1,5 +1,5 @@
 ---
-title: "Regional Partner Quarterly Report 2024-25 (Quarter 4)"
+title: "Engagement Quarterly Report 2024-25 (Quarter 4)"
 author: "NWRI D Team"
 output-dir: folder1
 format:
@@ -303,7 +303,7 @@ p<-ggplot(data = NULL) +
   coord_cartesian(clip = "off")  # avoid clipping labels
 
 # Save tightly cropped
-ggsave("nps_bar_dotq4.png", p,
+ggsave("nps_bar_dot.png", p,
        width = 10, height = 3, dpi = 500,
        bg = "transparent")  # optional: transparent background
 
@@ -311,7 +311,7 @@ ggsave("nps_bar_dotq4.png", p,
 ## NPS Score: `{r} Total_NPSQ3$NPS`
 
 <div style="height: 120px; overflow: hidden; display: flex; justify-content: center;">
-  <img src="nps_bar_dotq4.png" style="width: 100%; transform: translateY(-90px);">
+  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-90px);">
 </div>
 
 ## Quarter 4 Overview:
