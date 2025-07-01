@@ -10,3 +10,4 @@ This is the landing page for our data reports.
 - [📈 School Level Analyses 2024-25](reports/School_level_report_2425/School_Level_Report.html)
 - [📊 District POC Annual Survey Report 2024-25](reports/District_POC_survey_report_2425/District_POC_Annual_Report_2425.html)
 - [📊 Regional Partner Annual Survey Report 2024-25](reports/Regional_Partner_annual_survey_report_2425/Regional_Partner_Annual_Report_2425.html)
+- [📊 Regional Partner Annual Survey Report 2024-25](reports/Regional_Partner_surveys_quarterly/regional_q3_2425.html)
