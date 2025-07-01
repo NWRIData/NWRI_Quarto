@@ -12,7 +12,9 @@ format:
     toc-floating: true
 editor: visual
 ---
+
 # DATA OVERVIEW
+
 ```{r,include = FALSE}
 #load libraries
 require(tidyverse)
@@ -67,8 +69,6 @@ regional_data_timeq2<-regional_dataq2 %>%
 regional_data_timeq1<-regional_dataq1 %>%
   mutate(Quarter = "Quarter 1")
 ```
-
-
 
 ```{r,include = FALSE}
 #get net promoter score for all
@@ -261,8 +261,6 @@ max_response_number <- max(max_response$n)
 
 ```
 
-
-
 ## Quarter 4 Overview:
 
 -   Total survey respondents: `{r} total_responders`
@@ -318,6 +316,7 @@ kableExtra::kable(temporal_nps,"pipe",
 ```
 
 Additionally across the `{r} length(na.omit(total_partners$Q1))` regional partners, the distribution of these respondents to the NPS question and the NPS for each partner in Q3 are as follows:
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE}
 kableExtra::kable(regional_part_df_tableQ4,"pipe",
                   col.names = c("Regional Partner", 
@@ -333,6 +332,7 @@ kableExtra::column_spec(3, width = "3cm")
 ```
 
 # Q4 Data Dive
+
 ## Details on NPS across regional partners
 
 The frequency of the possible answers selected, ranging from 0 to 10, for the NPS question across the six largest regional partners (based on respondent numbers) are shown in the figure below for Q2.
@@ -376,7 +376,6 @@ regional_data_eleigibility<-regional_dataq4 %>%
 ```
 
 While most people selected 10 for the NPS question certain regional partners had higher frequencies of passive scores (6-9, bars in the blue region of Figure 2). Detractors (0-6) were sparse but still appeared in almost all regional partner events.
-
 
 ## Details on how likely respondents would enroll their child in NWRI
 
