@@ -80,7 +80,17 @@ cs_scorenonELC<-DIS_Data %>%
   filter(satisfied == "Satisfied")
 
 
+#also get a table for ELC and Districts
+total_numbers<-DIS_Data %>%
+  mutate(type = ifelse(str_detect(Q2, "ELC"), "ELC", "District")) %>%
+  count(type) %>%
+  drop_na()
+
+types<-DIS_Data %>%
+  mutate(type = ifelse(str_detect(Q2, "ELC"), "ELC", "District")) 
+nrow(subset(types, type == "District"))
 ```
+
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 #NPS score graph
@@ -108,12 +118,13 @@ p<-ggplot(data = NULL) +
            width = 0.2) +
   geom_text(data = NPS_Scale,
             aes(y = x_mas, x = perc_label, label = x), 
-            color = "white", size = 5, fontface = "bold", hjust = 0.5) +
+            color = "white", size = 4.5, fontface = "bold", hjust = 0.5) +
   scale_fill_manual(values = rev(c("#D73027", "#FC8D59","#91BFDB","#4575B4"))) +
   geom_point(data = Ourdata, aes(y = 1.2, x = y), size = 5) +
   theme_minimal() +
   theme(axis.title = element_blank(), 
-        axis.text = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(), 
         legend.title = element_blank(),
         legend.position = "none",
         panel.grid.major = element_blank(),
@@ -129,20 +140,19 @@ ggsave("nps_bar_dot.png", p,
 ```
 ## NPS Score: `{r} NPS$NPS`
 
-<div style="height: 100px; overflow: hidden; display: flex; justify-content: center;">
-  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-60px);">
+<div style="height: 120px; overflow: hidden; display: flex; justify-content: center;">
+  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-90px);">
 </div>
 
 # Overview
 
-There was a total of `{r} nrow(DIS_Data)` responders for the District POC survey. The overall NPS was `{r} NPS$NPS` while the customer satisfaction rate was `{r} cs_score$cust_perc`%.
+There was a total of `{r} length(unique(DIS_Data$ResponseId))` responders from `{r} total_numbers$n[total_numbers$type == "District"]` Districts and `{r} total_numbers$n[total_numbers$type == "ELC"]` ELCs. The overall NPS was `{r} NPS$NPS` while the customer satisfaction rate was `{r} cs_score$cust_perc`% [^1].
 
-The NPS for non ELC District POC was `{r} NPS_NONELC$NPS ` and the customer satisfaction rate was `{r} cs_scorenonELC$cust_perc`%.
+The NPS for District POC was `{r} NPS_NONELC$NPS ` and the customer satisfaction rate was `{r} cs_scorenonELC$cust_perc`% (sample size: `{r} nrow(subset(types, type == "District"))` responders).
 
-The NPS for ELCs was `{r} NPS_ELC$perc ` and the customer satisfaction rate was `{r} cs_scoreELC$cust_perc`%.
+The NPS for ELCs was `{r} NPS_ELC$perc ` and the customer satisfaction rate was `{r} cs_scoreELC$cust_perc`% (sample size: `{r} nrow(subset(types, type == "ELC"))` responders).
 
-# Customer satisfaction rate info
-We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.
+[^1]: We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.
 
 # Flyer info
 
@@ -230,25 +240,32 @@ Question 7: What can we do to better serve you and/or families in your district?
 #generate word cloud by NPS group and save them for use with table
 
 combined_word_cloud<-DIS_Data %>%
-  select(Q4_NPS_GROUP, Q5, Q6, Q7) %>%
-  mutate(full_comm = paste(Q5, Q6,Q7, sep = " ")) %>%
-  mutate(full_comm = str_replace_all(full_comm, "NA", "")) %>%
-  mutate(full_comm = str_squish(full_comm))  %>% 
-  mutate(full_comm = str_to_lower(full_comm)) %>%
-  select(Q4_NPS_GROUP, full_comm) %>%
-   unnest_tokens(word, full_comm) %>%
+  select(Q5, Q6, Q7) %>%
+  pivot_longer(cols = c(Q5, Q6, Q7),names_to = "question") %>%
+  mutate(value = str_replace_all(value, "NA", "")) %>%
+  mutate(value = str_squish(value))  %>% 
+  mutate(value = str_to_lower(value)) %>%
+  select(question, value) %>%
+   unnest_tokens(word, value) %>%
     anti_join(stop_words, by = "word") %>%
-    count(Q4_NPS_GROUP,word, sort = TRUE) %>%
-   group_split(Q4_NPS_GROUP) # returns a list, one df per group
+    count(question,word, sort = TRUE) %>%
+  drop_na(word) %>%
+   group_split(question) # returns a list, one df per group
+
+attr(DIS_Data$Q5, "label")
 
 #make three word clouds based on NPS group
+group_names<-c("Q5", "Q6", "Q7")
 
 save_word_clouds <- function(word_df, group_name) {
   safe_group <- gsub("[^a-zA-Z0-9]", "_", group_name)
-  filename <- paste0("wrd_wordcloud", "_", safe_group, ".png")
+  filename <- paste0("wordcloud", "_", safe_group, ".png")
 
-  png(filename, width = 500, height = 500)
-  par(mar = c(0, 0, 6, 0))
+  label <- attr(DIS_Data[[group_name]], "label")
+  wrapped_title <- paste(strwrap(label, width = 35), collapse = "\n")
+
+  png(filename, width = 600, height = 600)
+  par(mar = c(0, 0, 9, 0))
   wordcloud(
     words = word_df$word,
     freq = word_df$n,
@@ -258,15 +275,13 @@ save_word_clouds <- function(word_df, group_name) {
     colors = brewer.pal(8, "Dark2"),
     random.order = FALSE
     )
-   title(main = group_name, cex.main = 2.5)
+   title(main = wrapped_title, cex.main = 2.5)
   dev.off()
 
   message("Saved: ", filename)
 }
-group_names<-unique(DIS_Data$Q4_NPS_GROUP)
+group_names<-c("Q5", "Q6", "Q7")
 
-safe_group<-gsub("[^a-zA-Z0-9]", "_", group_names[1])
-filename <- paste0("wrd_wordcloud", "_", safe_group, ".png")
 
 walk2(combined_word_cloud, group_names, ~save_word_clouds(.x, .y))
 ```
@@ -274,11 +289,10 @@ walk2(combined_word_cloud, group_names, ~save_word_clouds(.x, .y))
 
 
 <div id="wordcloud-scroll" style="overflow-x: auto; white-space: nowrap;">
-  <img src="wrd_wordcloud_Detractor.png" style="height: 300px; display: inline-block; margin-right: 10px;">
-  <img src="wrd_wordcloud_Passive.png" style="height: 300px; display: inline-block; margin-right: 10px;">
-  <img src="wrd_wordcloud_Promoter.png" style="height: 300px; display: inline-block;">
+  <img src="wordcloud_Q5.png" style="height: 400px; display: inline-block; margin-right: 10px;">
+  <img src="wordcloud_Q6.png" style="height: 400px; display: inline-block; margin-right: 10px;">
+  <img src="wordcloud_Q7.png" style="height: 400px; display: inline-block;">
 </div>
-
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
@@ -290,23 +304,20 @@ DIS_Data2<- DIS_Data %>%
 
 # each fragment is searched for separately with match size >= # of fragments
 # size > length happens when something like city(_id)? returns two positive matches
-js_filter <-  JS(
+js_filter <- JS(
   "function(rows, columnId, filterValue) {
-      // rows = [{'table': 1, 'field': 'city'}, {'table': 2, 'field': 'city city_id'}] 
-      // columnId = 'field'
-      // filterValue = 'city(_id)?'
-      try {
-        const pattern = filterValue.split(' ')
-        const find = RegExp(`(${pattern.join('|')})+`, 'gi')
-        return rows.filter(
-          row => new Set(row.values[columnId].match(find)).size >= pattern.length
-        )
-      } catch(e) {
-          return rows
-      }
-       
-  }"
+     try {
+       const pattern = filterValue.trim().toLowerCase().split(' ');
+       return rows.filter(row => {
+         const value = String(row.values[columnId] || '').toLowerCase();
+         return pattern.every(term => value.includes(term));
+       });
+     } catch (e) {
+       return rows;
+     }
+   }"
 )
+
 
 # highlight all fragment occurrences string matches
 js_match_style <- JS(
@@ -327,25 +338,25 @@ js_match_style <- JS(
 reactable(DIS_Data2,
           searchable = TRUE,highlight = TRUE,
             columns = list(
-              Q2 = colDef(name = "County/ELC", filterable = T,
+              Q2 = colDef(name = "County/ELC",  filterable = TRUE,
                           filterMethod = js_filter,
                           cell = js_match_style,
+                          html = TRUE,
                           sortable = T),
               Q4_NPS_GROUP = colDef(name = "NPS Group"),
-              Q5 = colDef(name = "Question 5",
+              Q5 = colDef(name = paste(attr(DIS_Data$Q5, "label")),
                           filterable = TRUE,
                           filterMethod = js_filter,
                           cell = js_match_style,
                           html = TRUE,
                           sortable = F),
-              Q6 = colDef(name = "Question 6",
+              Q6 = colDef(name = paste(attr(DIS_Data$Q6, "label")),
                           filterable = TRUE,
                           filterMethod = js_filter,
                           cell = js_match_style,
                           html = TRUE,
                           sortable = F),
-              Q7 = colDef(
-                          name = "Question 7",
+              Q7 = colDef(name = paste(attr(DIS_Data$Q7, "label")),
                           filterable = TRUE,
                           filterMethod = js_filter,
                           cell = js_match_style,

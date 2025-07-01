@@ -16,9 +16,18 @@ editor: visual
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 require(tidyverse)
 regional_Data<-readRDS("data/Regional_Partner_Survey2425.rds")
+
+regional_Data<-regional_Data %>%
+  filter(!Q6 == "test")
+
 responders<-regional_Data %>%
   filter(!is.na(Q5_NPS_GROUP))  %>%
   nrow()
+
+partners<-regional_Data %>%
+  filter(!is.na(Q5_NPS_GROUP)) 
+
+
 #calculate NPS
 NPS_reg<-regional_Data %>%
   filter(!is.na(Q5_NPS_GROUP)) %>%
@@ -88,16 +97,16 @@ ggsave("nps_bar_dot.png", p,
 ```
 ## NPS Score: `{r} NPS_reg$NPS`
 
-<div style="height: 100px; overflow: hidden; display: flex; justify-content: center;">
-  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-60px);">
+
+<div style="height: 120px; overflow: hidden; display: flex; justify-content: center;">
+  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-90px);">
 </div>
 
 # Overview
 
-We had a total of `{r} responders` responses to the regional partner annual survey. The overall NPS was `{r} NPS_reg$NPS ` with a customer satisfaction rate of `{r} cust_satis$cust_perc`%.
+We had a total of `{r} responders` responders from `{r} length(unique(partners$Q2))` regional partners for this survey. The overall NPS was `{r} NPS_reg$NPS ` with a customer satisfaction rate of `{r} cust_satis$cust_perc`%  [^1].
 
-# Customer satisfaction rate info
-We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.
+[^1]: We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.
 
 # Survey content
 Below is a table showing each partner, their NPS score, and their fill in the blank answers to questions regarding why they chose their score and what sort of improvements they would like:
@@ -116,22 +125,18 @@ regional_table <- regional_Data %>%
 
 # each fragment is searched for separately with match size >= # of fragments
 # size > length happens when something like city(_id)? returns two positive matches
-js_filter <-  JS(
+js_filter <- JS(
   "function(rows, columnId, filterValue) {
-      // rows = [{'table': 1, 'field': 'city'}, {'table': 2, 'field': 'city city_id'}] 
-      // columnId = 'field'
-      // filterValue = 'city(_id)?'
-      try {
-        const pattern = filterValue.split(' ')
-        const find = RegExp(`(${pattern.join('|')})+`, 'gi')
-        return rows.filter(
-          row => new Set(row.values[columnId].match(find)).size >= pattern.length
-        )
-      } catch(e) {
-          return rows
-      }
-       
-  }"
+     try {
+       const pattern = filterValue.trim().toLowerCase().split(' ');
+       return rows.filter(row => {
+         const value = String(row.values[columnId] || '').toLowerCase();
+         return pattern.every(term => value.includes(term));
+       });
+     } catch (e) {
+       return rows;
+     }
+   }"
 )
 
 # highlight all fragment occurrences string matches
