@@ -1,6 +1,9 @@
 project:
   output-dir: docs
 
+    
 format:
   html:
-    css: shared/styles.scss
+    theme: flatly
+    toc: true
+    css: styles.css
