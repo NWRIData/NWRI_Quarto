@@ -123,14 +123,14 @@
     "href": "graphingtrial.html",
     "title": "graphingtrial",
     "section": "",
-    "text": "Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see https://quarto.org."
+    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-07-02 15:24:39 EDT\""
   },
   {
     "objectID": "graphingtrial.html#quarto",
     "href": "graphingtrial.html#quarto",
     "title": "graphingtrial",
-    "section": "",
-    "text": "Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see https://quarto.org."
+    "section": "Quarto",
+    "text": "Quarto\nQuarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see https://quarto.org."
   },
   {
     "objectID": "graphingtrial.html#running-code",
@@ -138,5 +138,12 @@
     "title": "graphingtrial",
     "section": "Running Code",
     "text": "Running Code\nWhen you click the Render button a document will be generated that includes both content and the output of embedded code. You can embed code like this:\n\nlibrary(tidyverse)\n\n── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──\n✔ dplyr     1.1.4     ✔ readr     2.1.5\n✔ forcats   1.0.0     ✔ stringr   1.5.1\n✔ ggplot2   3.5.2     ✔ tibble    3.2.1\n✔ lubridate 1.9.4     ✔ tidyr     1.3.1\n✔ purrr     1.0.4     \n── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──\n✖ dplyr::filter() masks stats::filter()\n✖ dplyr::lag()    masks stats::lag()\nℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors\n\nlibrary(lubridate)\nlibrary(zoo)  # for na.locf\n\n\nAttaching package: 'zoo'\n\nThe following objects are masked from 'package:base':\n\n    as.Date, as.Date.numeric\n\nlibrary(ggiraph)\nset.seed(123)\n\n# Parameters\nstart_date &lt;- ymd(\"2024-06-01\")\nend_date &lt;- ymd(\"2026-06-01\")\nweekly_dates &lt;- seq(from = start_date, to = end_date, by = \"1 week\")\n\n# Cycle start and year functions\ncycle_start &lt;- function(date) {\n  y &lt;- year(date)\n  this_year_june1 &lt;- ymd(paste0(y, \"-06-01\"))\n  if (date &gt;= this_year_june1) {\n    return(this_year_june1)\n  } else {\n    return(ymd(paste0(y - 1, \"-06-01\")))\n  }\n}\ncycle_year &lt;- function(date) {\n  y &lt;- year(date)\n  this_year_june1 &lt;- ymd(paste0(y, \"-06-01\"))\n  if (date &gt;= this_year_june1) {\n    return(y)\n  } else {\n    return(y - 1)\n  }\n}\n\n# Compute week number within cycle and year\nweek_number &lt;- sapply(weekly_dates, function(d) {\n  start &lt;- cycle_start(d)\n  weeks &lt;- as.numeric(difftime(d, start, units = \"weeks\")) + 1\n  return(as.integer(weeks))\n})\nyear_vec &lt;- sapply(weekly_dates, cycle_year)\n\n# Put data together\nsimulated_Data &lt;- tibble(\n  date = weekly_dates,\n  year = year_vec,\n  week = week_number\n)\n\n# Function to simulate a smooth, increasing enrollment curve for one cycle\nsimulate_enrollment_curve &lt;- function(n_weeks, max_enrollment) {\n  # Create a baseline linear increase\n  baseline &lt;- seq(0, max_enrollment, length.out = n_weeks)\n  \n  # Create random weekly increments around the baseline slope but ensure monotonicity\n  # We'll do this by simulating random positive increments, then cumulative sum\n  \n  # Simulate small random positive increments around the average weekly increase\n  avg_weekly_inc &lt;- max_enrollment / n_weeks\n  noise &lt;- rnorm(n_weeks, mean = avg_weekly_inc, sd = avg_weekly_inc * 10)\n  noise &lt;- pmax(noise, avg_weekly_inc * 0.1)  # keep increments positive and not too small\n  \n  # Smooth increments using a rolling mean to make rate changes gradual\n  smooth_inc &lt;- zoo::rollmean(noise, k = 5, fill = NA, align = \"center\")\n  smooth_inc &lt;- zoo::na.locf(smooth_inc, na.rm = FALSE)\n  smooth_inc[is.na(smooth_inc)] &lt;- avg_weekly_inc\n  \n  # Ensure all increments positive again after smoothing\n  smooth_inc &lt;- pmax(smooth_inc, avg_weekly_inc * 0.05)\n  \n  # cumulative sum to get enrollment curve\n  enrollment &lt;- cumsum(smooth_inc)\n  \n  # Rescale to max enrollment exactly\n  enrollment &lt;- enrollment / max(enrollment) * max_enrollment\n  \n  return(enrollment)\n}\n\n# Calculate max enrollment by cycle year\nsimulated_Data &lt;- simulated_Data %&gt;%\n  mutate(\n    max_enrollment = if_else(year == 2024, 350000, 380000)\n  )\n\n# Group by cycle year and simulate enrollment curves\nenrollment_values &lt;- simulated_Data %&gt;%\n  group_by(year) %&gt;%\n  summarise(\n    n_weeks = n()\n  ) %&gt;%\n  rowwise() %&gt;%\n  mutate(\n    enrollment_curve = list(simulate_enrollment_curve(n_weeks, if_else(year == 2024, 350000, 380000)))\n  ) %&gt;%\n  ungroup()\n\n# Join back to data\nsimulated_Data &lt;- simulated_Data %&gt;%\n  left_join(enrollment_values %&gt;% select(year, enrollment_curve), by = \"year\") %&gt;%\n  group_by(year) %&gt;%\n  mutate(enrollment = enrollment_curve[[1]][week]) %&gt;%\n  ungroup() %&gt;%\n  mutate(application = 2 * enrollment) %&gt;%\n  select(-max_enrollment, -enrollment_curve)\n\n# Plot with color for year\ngg_point&lt;-ggplot() +\n  geom_point_interactive(data = simulated_Data, \n                         aes(x = week, \n                             y = enrollment, \n                             color = factor(year),\n                             tooltip = date, data_id = date)) +\n  geom_line(data = simulated_Data, aes(x = week, y = enrollment, color = factor(year))) +\n  theme_minimal()\n\ngirafe(ggobj = gg_point)"
+  },
+  {
+    "objectID": "graphingtrial.html#rendered-at",
+    "href": "graphingtrial.html#rendered-at",
+    "title": "graphingtrial",
+    "section": "",
+    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-07-02 15:24:39 EDT\""
   }
 ]
