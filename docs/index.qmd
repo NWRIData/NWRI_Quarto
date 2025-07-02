@@ -3,6 +3,15 @@ title: "New Worlds Reading Initiative Data Team"
 format: html
 ---
 
+<!--
+<script>
+  const password = prompt("Enter password");
+  if (password !== "mypassword") {
+    document.body.innerHTML = "Access denied";
+  }
+</script>
+-->
+
 # Welcome 👋
 
 This is the landing page for our data reports.
@@ -12,3 +21,6 @@ This is the landing page for our data reports.
 - [📊 Regional Partner Annual Survey Report 2024-25](reports/Regional_Partner_annual_survey_report_2425/Regional_Partner_Annual_Report_2425.html)
 - [📊 Regional Partners Quarterly Survey Reports 2024-25](reports/Regional_Partner_surveys_quarterly/regional_q4_2425.html)
 - [📊 Engagement Quarterly Survey Reports 2024-25](reports/Engagements_survey_report_quarterly/Engagement_q4_2425.html)
+
+- [📊 GRAPH!](trial.html)
+

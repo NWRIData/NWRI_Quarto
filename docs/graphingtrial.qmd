@@ -1,0 +1,135 @@
+---
+title: "graphingtrial"
+editor: visual
+---
+## Rendered at
+
+```{r}
+format(Sys.time(), tz = "America/New_York", usetz = TRUE)
+```
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(zoo)  # for na.locf
+library(ggiraph)
+set.seed(123)
+
+# Parameters
+start_date <- ymd("2024-06-01")
+end_date <- ymd("2026-06-01")
+weekly_dates <- seq(from = start_date, to = end_date, by = "1 week")
+
+# Cycle start and year functions
+cycle_start <- function(date) {
+  y <- year(date)
+  this_year_june1 <- ymd(paste0(y, "-06-01"))
+  if (date >= this_year_june1) {
+    return(this_year_june1)
+  } else {
+    return(ymd(paste0(y - 1, "-06-01")))
+  }
+}
+cycle_year <- function(date) {
+  y <- year(date)
+  this_year_june1 <- ymd(paste0(y, "-06-01"))
+  if (date >= this_year_june1) {
+    return(y)
+  } else {
+    return(y - 1)
+  }
+}
+
+# Compute week number within cycle and year
+week_number <- sapply(weekly_dates, function(d) {
+  start <- cycle_start(d)
+  weeks <- as.numeric(difftime(d, start, units = "weeks")) + 1
+  return(as.integer(weeks))
+})
+year_vec <- sapply(weekly_dates, cycle_year)
+
+# Put data together
+simulated_Data <- tibble(
+  date = weekly_dates,
+  year = year_vec,
+  week = week_number
+)
+
+# Function to simulate a smooth, increasing enrollment curve for one cycle
+simulate_enrollment_curve <- function(n_weeks, max_enrollment) {
+  # Create a baseline linear increase
+  baseline <- seq(0, max_enrollment, length.out = n_weeks)
+  
+  # Create random weekly increments around the baseline slope but ensure monotonicity
+  # We'll do this by simulating random positive increments, then cumulative sum
+  
+  # Simulate small random positive increments around the average weekly increase
+  avg_weekly_inc <- max_enrollment / n_weeks
+  noise <- rnorm(n_weeks, mean = avg_weekly_inc, sd = avg_weekly_inc * 10)
+  noise <- pmax(noise, avg_weekly_inc * 0.1)  # keep increments positive and not too small
+  
+  # Smooth increments using a rolling mean to make rate changes gradual
+  smooth_inc <- zoo::rollmean(noise, k = 5, fill = NA, align = "center")
+  smooth_inc <- zoo::na.locf(smooth_inc, na.rm = FALSE)
+  smooth_inc[is.na(smooth_inc)] <- avg_weekly_inc
+  
+  # Ensure all increments positive again after smoothing
+  smooth_inc <- pmax(smooth_inc, avg_weekly_inc * 0.05)
+  
+  # cumulative sum to get enrollment curve
+  enrollment <- cumsum(smooth_inc)
+  
+  # Rescale to max enrollment exactly
+  enrollment <- enrollment / max(enrollment) * max_enrollment
+  
+  return(enrollment)
+}
+
+# Calculate max enrollment by cycle year
+simulated_Data <- simulated_Data %>%
+  mutate(
+    max_enrollment = if_else(year == 2024, 350000, 380000)
+  )
+
+# Group by cycle year and simulate enrollment curves
+enrollment_values <- simulated_Data %>%
+  group_by(year) %>%
+  summarise(
+    n_weeks = n()
+  ) %>%
+  rowwise() %>%
+  mutate(
+    enrollment_curve = list(simulate_enrollment_curve(n_weeks, if_else(year == 2024, 350000, 380000)))
+  ) %>%
+  ungroup()
+
+# Join back to data
+simulated_Data <- simulated_Data %>%
+  left_join(enrollment_values %>% select(year, enrollment_curve), by = "year") %>%
+  group_by(year) %>%
+  mutate(enrollment = enrollment_curve[[1]][week]) %>%
+  ungroup() %>%
+  mutate(application = 2 * enrollment) %>%
+  select(-max_enrollment, -enrollment_curve)
+
+# Plot with color for year
+gg_point<-ggplot() +
+  geom_point_interactive(data = simulated_Data, 
+                         aes(x = week, 
+                             y = enrollment, 
+                             color = factor(year),
+                             tooltip = date, data_id = date)) +
+  geom_line(data = simulated_Data, aes(x = week, y = enrollment, color = factor(year))) +
+  theme_minimal()
+
+girafe(ggobj = gg_point)
+
+```

@@ -1,0 +1,36 @@
+name: Render Quarto Every Hour
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour (UTC)
+  workflow_dispatch:      # Optional manual trigger
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Install R packages
+        run: |
+          Rscript -e 'install.packages(c("tidyverse", "lubridate", "zoo"))'
+          Rscript -e 'if (!requireNamespace("ggiraph", quietly = TRUE)) install.packages("ggiraph", repos = "https://cran.rstudio.com")'
+
+      - name: Render graphingtrial.qmd
+        run: quarto render graphingtrial.qmd
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Automated render [skip ci]" || echo "No changes to commit"
+          git push

@@ -4,9 +4,11 @@ project:
     
 website:
   title: "New Worlds Reading Initiative Data Team"
-
-
-
+  navbar: 
+   left:
+      - text: Home
+        href: index.qmd
+    
 
 format:
   html:
