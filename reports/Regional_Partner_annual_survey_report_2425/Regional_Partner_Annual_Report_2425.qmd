@@ -50,6 +50,7 @@ cust_satis<-regional_Data %>%
 
 
 ```
+
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 #NPS score graph
 
@@ -76,7 +77,7 @@ p<-ggplot(data = NULL) +
            width = 0.2) +
   geom_text(data = NPS_Scale,
             aes(y = x_mas, x = perc_label, label = x), 
-            color = "white", size = 5, fontface = "bold", hjust = 0.5) +
+            color = "white", size = 4.5, fontface = "bold", hjust = 0.5) +
   scale_fill_manual(values = rev(c("#D73027", "#FC8D59","#91BFDB","#4575B4"))) +
   geom_point(data = Ourdata, aes(y = 1.2, x = y), size = 5) +
   theme_minimal() +
@@ -95,21 +96,23 @@ ggsave("nps_bar_dot.png", p,
        bg = "transparent")  # optional: transparent background
 
 ```
+
 ## NPS Score: `{r} NPS_reg$NPS`
 
-
-<div style="height: 120px; overflow: hidden; display: flex; justify-content: center;">
-  <img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-90px);">
-</div>
+::: {style="height: 120px; overflow: hidden; display: flex; justify-content: center;"}
+<img src="nps_bar_dot.png" style="width: 100%; transform: translateY(-90px);"/>
+:::
 
 # Overview
 
-We had a total of `{r} responders` responders from `{r} length(unique(partners$Q2))` regional partners for this survey. The overall NPS was `{r} NPS_reg$NPS ` with a customer satisfaction rate of `{r} cust_satis$cust_perc`%  [^1].
+We had a total of `{r} responders` responders from `{r} length(unique(partners$Q2))` regional partners for this survey. The overall NPS was `{r} NPS_reg$NPS` with a customer satisfaction rate of `{r} cust_satis$cust_perc`% [^1].
 
 [^1]: We considered responses of 8-10 for the NPS questions as satisfied customers and calculated the percentage of those selecting 8-10 as the customer satisfaction percentage.
 
 # Survey content
+
 Below is a table showing each partner, their NPS score, and their fill in the blank answers to questions regarding why they chose their score and what sort of improvements they would like:
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 require(reactable)
 require(reactablefmtr)
