@@ -2,8 +2,14 @@ project:
   output-dir: docs
 
     
+website:
+  title: "New Worlds Reading Initiative Data Team"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+
 format:
   html:
     theme: flatly
-    toc: true
     css: styles.css

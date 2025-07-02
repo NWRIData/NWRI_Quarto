@@ -1,9 +1,0 @@
-project:
-  output-dir: docs
-
-    
-format:
-  html:
-    theme: flatly
-    toc: true
-    css: styles.css
