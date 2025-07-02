@@ -1,0 +1,14 @@
+project:
+  type: website
+  output-dir: .    
+    
+website:
+  title: "New Worlds Reading Initiative Data Team"
+
+
+
+
+format:
+  html:
+    theme: flatly
+    css: styles.css
