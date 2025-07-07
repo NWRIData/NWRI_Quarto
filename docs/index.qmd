@@ -3,14 +3,12 @@ title: "New Worlds Reading Initiative Data Team"
 format: html
 ---
 
-<!--
 <script>
   const password = prompt("Enter password");
-  if (password !== "mypassword") {
+  if (password !== "NWRI") {
     document.body.innerHTML = "Access denied";
   }
 </script>
--->
 
 # Welcome 👋
 
