@@ -5,5 +5,4 @@
 [build.environment]
   QUARTO_VERSION = "1.4.550"
 
-[[plugins]]
-  package = "netlify-plugin-quarto"
+
