@@ -20,22 +20,22 @@ This is the landing page for our data products.
 
 ### General:
 
--   [📊 Eligibility & Enrollment Table 2025-26](docs/reports/Eligiblity_table_2526/Eligibility_table.html)
+-   [📊 Eligibility & Enrollment Table 2025-26](reports/Eligiblity_table_2526/Eligibility_table.html)
 
 ## Reports
 
 ### General:
 
--   [📈 School Level Analyses 2024-25](docs/reports/School_level_NWreport_2425/School_Level_Report.html)
+-   [📈 School Level Analyses 2024-25](reports/School_level_NWreport_2425/School_Level_Report.html)
 
 ### 📘 E Team:
 
--   [📑 Engagement Family Quarterly Survey Reports 2024-25](docs/engagement_quarters.html)
+-   [📑 Engagement Family Quarterly Survey Reports 2024-25](engagement_quarters.html)
 -   [📑 District POC Annual Survey Report 2024-25](docs/reports/District_POC_survey_report_2425/District_POC_Annual_Report_2425.html)
 
 ### G Team:
 
--   [📑 Regional Partners Family Quarterly Survey Reports 2024-25](docs/regional_quarters.html)
+-   [📑 Regional Partners Family Quarterly Survey Reports 2024-25](regional_quarters.html)
 -   [📑 Regional Partner Annual Survey Report 2024-25](docs/reports/Regional_Partner_annual_survey_report_2425/Regional_Partner_Annual_Report_2425.html)
 
 ## Misc:

@@ -2,6 +2,7 @@
 title: "graphingtrial"
 editor: visual
 ---
+
 ## Rendered at
 
 ```{r}

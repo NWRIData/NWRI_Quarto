@@ -4,12 +4,20 @@ project:
     
 website:
   title: "New Worlds Reading Initiative Data Team"
-  navbar: 
-   left:
-      - text: Home
-        href: index.qmd
-    
+navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - text: Reports
+        menu:
+          - href: reports/Eligibility_table.qmd
+            text: Eligibility Table
+          - href: reports/Another_Report.qmd
+            text: Another Report
+        
 
 format:
   html:
     css: styles.css
+    
+  

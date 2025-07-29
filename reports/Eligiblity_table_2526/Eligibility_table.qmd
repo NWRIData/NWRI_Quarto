@@ -4,6 +4,7 @@ author: "NWRI D Team"
 output-dir: ../../docs/
 format:
   html: 
+    self-contained: true
     toc: true
     toc-location: left
     toc-title: "Contents"
