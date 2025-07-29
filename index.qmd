@@ -26,7 +26,7 @@ This is the landing page for our data products.
 
 ### General:
 
--   [📈 School Level Analyses 2024-25](reports/School_level_NWreport_2425/School_Level_Report.html)
+-   [📈 School Level Analyses 2024-25](reports/School_level_report_2425/School_Level_Report.html)
 
 ### 📘 E Team:
 
