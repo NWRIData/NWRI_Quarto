@@ -3,22 +3,38 @@ title: "New Worlds Reading Initiative Data Team"
 format: html
 ---
 
+```{=html}
 <script>
   const password = prompt("Enter password");
   if (password !== "NWRI") {
     document.body.innerHTML = "Access denied";
   }
 </script>
+```
 
 # Welcome 👋
 
-This is the landing page for our data reports.
+This is the landing page for our data products.
 
-- [📈 School Level Analyses 2024-25](reports/School_level_report_2425/School_Level_Report.html)
-- [📊 District POC Annual Survey Report 2024-25](reports/District_POC_survey_report_2425/District_POC_Annual_Report_2425.html)
-- [📊 Regional Partner Annual Survey Report 2024-25](reports/Regional_Partner_annual_survey_report_2425/Regional_Partner_Annual_Report_2425.html)
-- [📊 Regional Partners Family Quarterly Survey Reports 2024-25](reports/Regional_Partner_surveys_quarterly/regional_q4_2425.html)
-- [📊 Engagement Family Quarterly Survey Reports 2024-25](reports/Engagements_survey_report_quarterly/Engagement_q4_2425.html)
+## Tables
 
-- [📊 GRAPH!](graphingtrial.html)
+### General:
+-   [📊 Eligibility & Enrollment Table 2025-26](docs/reports/Eligiblity_table_2526/Eligibility_table.html)
 
+## Reports
+
+### General:
+-   [📈 School Level Analyses 2024-25](docs/reports/School_level_NWreport_2425/School_Level_Report.html)
+
+### 📘 E Team:
+-   [📑 Engagement Family Quarterly Survey Reports 2024-25](docs/engagement_quarters.html)
+-   [📑 District POC Annual Survey Report 2024-25](docs/reports/District_POC_survey_report_2425/District_POC_Annual_Report_2425.html)
+
+### G Team:
+-   [📑 Regional Partners Family Quarterly Survey Reports 2024-25](docs/regional_quarters.html)
+-   [📑 Regional Partner Annual Survey Report 2024-25](docs/reports/Regional_Partner_annual_survey_report_2425/Regional_Partner_Annual_Report_2425.html)
+
+
+## Misc:
+
+-   [📊 GRAPH! Work in Progress](graphingtrial.html)
