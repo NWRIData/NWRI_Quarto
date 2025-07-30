@@ -88,14 +88,14 @@
     "href": "graphingtrial.html",
     "title": "graphingtrial",
     "section": "",
-    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-07-30 11:39:04 EDT\""
+    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-07-30 14:00:54 EDT\""
   },
   {
     "objectID": "graphingtrial.html#rendered-at",
     "href": "graphingtrial.html#rendered-at",
     "title": "graphingtrial",
     "section": "",
-    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-07-30 11:39:04 EDT\""
+    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-07-30 14:00:54 EDT\""
   },
   {
     "objectID": "graphingtrial.html#quarto",
