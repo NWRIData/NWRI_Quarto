@@ -1,23 +1,19 @@
 project:
   type: website
-  output-dir: docs    
-    
+  output-dir: docs
+
 website:
   title: "New Worlds Reading Initiative Data Team"
-navbar:
+  navbar:
     left:
       - href: index.qmd
         text: Home
       - text: Reports
         menu:
-          - href: reports/Eligibility_table.qmd
+          - href: reports/Eligiblity_table_2526/Eligibility_table.qmd
             text: Eligibility Table
-          - href: reports/Another_Report.qmd
-            text: Another Report
-        
 
 format:
   html:
+    theme: mintly
     css: styles.css
-    
-  

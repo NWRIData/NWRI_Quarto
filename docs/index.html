@@ -24,6 +24,7 @@ ul.task-list li input[type="checkbox"] {
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
 <script src="site_libs/clipboard/clipboard.min.js"></script>
 <script src="site_libs/quarto-search/autocomplete.umd.js"></script>
 <script src="site_libs/quarto-search/fuse.min.js"></script>
@@ -40,11 +41,11 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-a14e3238c51140e99ccc48519b6ed9ce.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
+  "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
+  "panel-placement": "end",
+  "type": "overlay",
   "limit": 50,
   "keyboard-shortcut": [
     "f",
@@ -71,11 +72,47 @@ ul.task-list li input[type="checkbox"] {
 <link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="fullcontent quarto-light">
+<body class="nav-fixed fullcontent quarto-light">
 
 <div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">New Worlds Reading Initiative Data Team</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="./index.html" aria-current="page"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-reports" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Reports</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-reports">    
+        <li>
+    <a class="dropdown-item" href="./reports/Eligiblity_table_2526/Eligibility_table.html">
+ <span class="dropdown-text">Eligibility Table</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
@@ -131,14 +168,14 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="e-team">📘 E Team:</h3>
 <ul>
 <li><a href="engagement_quarters.html">📑 Engagement Family Quarterly Survey Reports 2024-25</a></li>
-<li><a href="docs/reports/District_POC_survey_report_2425/District_POC_Annual_Report_2425.html">📑 District POC Annual Survey Report 2024-25</a></li>
+<li><a href="reports/District_POC_survey_report_2425/District_POC_Annual_Report_2425.html">📑 District POC Annual Survey Report 2024-25</a></li>
 </ul>
 </section>
 <section id="g-team" class="level3">
 <h3 class="anchored" data-anchor-id="g-team">G Team:</h3>
 <ul>
 <li><a href="regional_quarters.html">📑 Regional Partners Family Quarterly Survey Reports 2024-25</a></li>
-<li><a href="docs/reports/Regional_Partner_annual_survey_report_2425/Regional_Partner_Annual_Report_2425.html">📑 Regional Partner Annual Survey Report 2024-25</a></li>
+<li><a href="reports/Regional_Partner_annual_survey_report_2425/Regional_Partner_Annual_Report_2425.html">📑 Regional Partner Annual Survey Report 2024-25</a></li>
 </ul>
 </section>
 </section>
