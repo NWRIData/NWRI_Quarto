@@ -1,7 +1,7 @@
 ---
 title: "Quarterly Reports Engagement"
 editor: visual
-output-dir: docs
+output-dir: .
 ---
 
 # Welcome 👋
