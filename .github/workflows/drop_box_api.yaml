@@ -1,4 +1,4 @@
-name: Daily Dropbox Download
+name: Weekly Dropbox Download
 
 on:
   push:
