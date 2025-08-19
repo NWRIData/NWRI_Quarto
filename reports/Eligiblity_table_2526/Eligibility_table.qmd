@@ -22,7 +22,6 @@ execute:
 require(tidyverse)
 require(reactable)
 require(reactablefmtr)
-require(ggeffects)
 require(viridis)
 require(wesanderson)
 

@@ -1,35 +1,55 @@
-# .github/workflows/render-quarto.yml
-name: Render and Deploy Quarto
+name: Render Quarto Site
 
+# You can trigger manually or after another workflow
 on:
   workflow_run:
-    workflows: ["R Data Processing and Commit"]  # Must exactly match the name
+    workflows: ["R Data Processing and Commit"] # your prior workflow
     types:
       - completed
+  workflow_dispatch: # allows manual trigger
 
 jobs:
-  render:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  render-and-push:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Check out the repo
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Quarto
-        uses: quarto-dev/quarto-actions/setup@v2
-
-      - name: Install R
+      # 2. Set up R
+      - name: Set up R
         uses: r-lib/actions/setup-r@v2
-
-      - name: Install deps
-        run: Rscript -e 'install.packages(c("tidyverse","quarto"))'
-
-      - name: Render site
-        run: quarto render
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _site   # or wherever Quarto outputs
+          r-version: '4.3.1'
+
+      # 3. Install system dependencies (if needed, e.g., libxml2, libgit2)
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
+      # 4. Install Quarto
+      - name: Install Quarto
+        uses: quarto-dev/quarto-actions/setup-quarto@v2
+
+      # 5. Install R packages needed for your documents
+      - name: Install R packages
+        run: |
+          R -e "install.packages(c('tidyverse','reactable','reactablefmtr','viridis','wesanderson'))"
+
+      # 6. Render the Quarto document
+      - name: Render Quarto document
+        run: |
+          quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs/
+
+      # 7. Commit and push the rendered HTML back to the branch
+      - name: Commit and push rendered site
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git commit -m "Render Eligibility_table.qmd with latest data" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
