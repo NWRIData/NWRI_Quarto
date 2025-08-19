@@ -24,6 +24,10 @@ require(reactable)
 require(reactablefmtr)
 require(viridis)
 require(wesanderson)
+require(scales)
+require(htmlwidgets)
+require(htmltools)
+
 
 
 get_latest_rds <- function(dir_path, verbose = TRUE) {
@@ -116,9 +120,7 @@ counts_filled<-counts_filled %>%
   summarise(counts = list(n)) %>%
   ungroup() 
 
-school_summary2<-left_join(school_summary,
-                           counts_filled,
-                           by = c("DistrictID"="Dis", "SchoolID"="Sch"))  %>%
+school_summary2<-school_summary  %>%
   mutate(priorit_col = case_when(
     Priority == "orange" ~ "orange",
     TRUE ~ 'grey'
@@ -534,24 +536,8 @@ reactable(
    #total students by school here
     total_n_enroll = colDef(name = "No. Enrolled Students",sortable = T,
       
-    ),
-   #time series of application activity from last year here
-     counts = colDef(
-      name = "Application Activity for Enrolled Students",
-      width = 250,
-      sticky = "right",
-      cell = react_sparkline(counts_filled,
-                             line_color = "black",
-                             tooltip_color = 'red',
-                             line_width = 2,
-                             line_curve = "linear",
-                             show_area = TRUE,
-                             area_color = "grey",
-                             area_opacity = 1,
-                             height = 80,
-                             highlight_points = highlight_points(max = "red"),
-                             labels = c("max"))
     )
+   
     ), #end of column list for nested table 
      details = function(index){
     school <- detail_data$SCHOOL_NAME_LONG[index]
