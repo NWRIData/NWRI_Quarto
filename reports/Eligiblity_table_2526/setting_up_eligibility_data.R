@@ -1,5 +1,6 @@
 require(dplyr)
 require(here)
+require(stringr)
 
 #establish date of the system for file labelling
 date<-Sys.Date()

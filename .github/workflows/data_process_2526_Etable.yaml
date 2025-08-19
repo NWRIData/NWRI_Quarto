@@ -36,7 +36,7 @@ jobs:
 
       - name: Install R packages
         run: |
-          Rscript -e 'install.packages(c("dplyr","here"), repos = "https://cloud.r-project.org")'
+          Rscript -e 'install.packages(c("dplyr","here", "stringr"), repos = "https://cloud.r-project.org")'
 
       - name: Run data processing script
         run: |
