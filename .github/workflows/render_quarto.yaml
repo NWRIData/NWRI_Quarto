@@ -18,28 +18,22 @@ jobs:
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: '4.4'   # bump to 4.4 since MuMIn requires it
 
       - name: Install Quarto CLI
         uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Install R dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: |
-            tidyverse
-            dplyr
-            ggplot2
-            reactable
-            isaactaylor/reactablefmtr
-            viridis
-            htmlwidgets
-            scales
-            htmltools
-            
-          needs: |
-            webfakes  # ensures pak can fetch GitHub packages
+      - name: Install R packages
+        run: |
+          Rscript -e 'install.packages(c(
+            "tidyverse",
+            "reactable",
+            "reactablefmtr",
+            "viridis",
+            "wesanderson",
+            "scales",
+            "htmlwidgets",
+            "htmltools"
+          ), repos="https://cloud.r-project.org")'
 
       - name: Render specific Quarto doc
         run: quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
