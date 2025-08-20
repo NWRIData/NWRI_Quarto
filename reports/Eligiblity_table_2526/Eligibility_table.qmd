@@ -16,9 +16,7 @@ execute:
   freeze: false
 ---
 
-```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
-
-#load libraries needed
+```{r setup, include=FALSE}
 require(tidyverse)
 require(reactable)
 require(reactablefmtr)
@@ -27,6 +25,12 @@ require(wesanderson)
 require(scales)
 require(htmlwidgets)
 require(htmltools)
+```
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
+
+#load libraries needed
+
 
 
 
@@ -144,15 +148,7 @@ school_summary2<-left_join(school_summary,
 Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
-#load libraries needed
-require(tidyverse)
-require(reactable)
-require(reactablefmtr)
-require(viridis)
-require(wesanderson)
-require(scales)
-require(htmlwidgets)
-require(htmltools)
+
 
 school_summary2 <- school_summary2 
 district_level<-school_summary2 |>
