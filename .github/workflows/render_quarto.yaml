@@ -2,7 +2,7 @@ name: Render Single Quarto Doc
 
 on:
   workflow_run:
-    workflows: ["R Data Processing and Commit"]  # adjust if needed
+    workflows: ["R Data Processing and Commit"]
     types:
       - completed
 
@@ -21,29 +21,33 @@ jobs:
 
       - name: Install Quarto CLI
         uses: quarto-dev/quarto-actions/setup@v2
-        
+
       - name: Install system dependencies
         run: |
-    sudo apt-get update
-    sudo apt-get install -y \
-      libcurl4-openssl-dev \
-      libssl-dev \
-      libxml2-dev \
-      libcairo2-dev \
-      libgit2-dev
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev \
+            libcairo2-dev \
+            libgit2-dev
 
       - name: Install R packages
         run: |
           Rscript -e 'install.packages(c(
-            "tidyverse",
-            "reactable",
-            "reactablefmtr",
+            "dplyr",
+            "ggplot2",
+            "scales",
             "viridis",
             "wesanderson",
-            "scales",
             "htmlwidgets",
-            "htmltools"
+            "htmltools",
+            "reactable",
+            "remotes"
           ), repos="https://cloud.r-project.org")'
+
+          # Install reactablefmtr from GitHub
+          Rscript -e 'remotes::install_github("kcuilla/reactablefmtr")'
 
       - name: Render specific Quarto doc
         run: quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
