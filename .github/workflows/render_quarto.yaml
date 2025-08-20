@@ -43,11 +43,8 @@ jobs:
             "htmlwidgets",
             "htmltools",
             "reactable",
-            "remotes"
+            "reactablefmtr"
           ), repos="https://cloud.r-project.org")'
-
-          # Install reactablefmtr from GitHub
-          Rscript -e 'remotes::install_github("kcuilla/reactablefmtr")'
 
       - name: Render specific Quarto doc
         run: quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
