@@ -19,8 +19,8 @@ execute:
 ```{r setup, include=FALSE}
 
 print("Loading tidyverse....")
-require(tidyverse)
-packageVersion("tidyverse")
+require(dplyr)
+packageVersion("dplyr")
 require(reactable)
 require(reactablefmtr)
 require(viridis)
@@ -28,6 +28,9 @@ require(wesanderson)
 require(scales)
 require(htmlwidgets)
 require(htmltools)
+require(stringr)
+require(lubridate)
+require(tidyr)
 ```
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}

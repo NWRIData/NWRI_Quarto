@@ -35,7 +35,10 @@ jobs:
       - name: Install R packages
         run: |
           Rscript -e 'install.packages(c(
-            "tidyverse",
+            "tidyr", 
+            "stringr", 
+            "lubridate",
+            "dplyr",
             "scales",
             "viridis",
             "wesanderson",
