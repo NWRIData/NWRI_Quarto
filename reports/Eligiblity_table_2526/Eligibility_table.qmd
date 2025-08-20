@@ -54,37 +54,37 @@ app_data<-readRDS("data/app_data.rds")
 #make a list of schools under average enrollment but over average eligibility
 #change any NAs for enrollment or eligible numbers to 0 and
 #remove any schools where we have no data on total enrollment
-Gradeleveltabs<-Gradeleveltabs %>%
+Gradeleveltabs<-Gradeleveltabs |>
   mutate(n_enrolled = ifelse(is.na(n_enrolled), 0, n_enrolled),
-         n_eligible = ifelse(is.na(n_eligible), 0, n_eligible))  %>%
-  filter(!is.na(n_total)) %>%
+         n_eligible = ifelse(is.na(n_eligible), 0, n_eligible))  |>
+  filter(!is.na(n_total)) |>
   mutate(perc_enroll = n_enrolled/n_total,
-         perc_eligible = n_eligible/n_total) %>%
-  filter(!perc_enroll > 1) %>%
+         perc_eligible = n_eligible/n_total) |>
+  filter(!perc_enroll > 1) |>
   rename(DistrictID = district,
          SchoolID = school)
 
-orangefilter = Gradeleveltabs %>%
-  group_by(DistrictID, SchoolID) %>%
+orangefilter = Gradeleveltabs |>
+  group_by(DistrictID, SchoolID) |>
   summarise(n_total = sum(n_total),
             n_eligible = sum(n_eligible),
-            n_enrolled = sum(n_enrolled)) %>%
-  ungroup() %>%
+            n_enrolled = sum(n_enrolled)) |>
+  ungroup() |>
   mutate(perc_enroll = n_enrolled/n_total,
          perc_eligible = n_eligible/n_total)
 
 
 # Step 1: Build summary table (1 row per school)
-school_summary <- Gradeleveltabs %>%
-  group_by(DistrictID, SchoolID,DISTRICT_NAME, SCHOOL_NAME_LONG) %>%
+school_summary <- Gradeleveltabs |>
+  group_by(DistrictID, SchoolID,DISTRICT_NAME, SCHOOL_NAME_LONG) |>
   summarize(avg_perc_eligible = mean(perc_eligible), total_n_eligible = sum(n_eligible),
             avg_perc_enroll = mean(perc_enroll), total_n_enroll = sum(n_enrolled),
-            .groups = "drop") %>%
+            .groups = "drop") |>
   mutate(Priority = case_when(
     avg_perc_enroll <  mean(orangefilter$perc_enroll, na.rm = T) &
            avg_perc_eligible > mean(orangefilter$perc_eligible, na.rm = T) ~ "orange",
     TRUE ~ "Other"
-  )) %>%
+  )) |>
   arrange(Priority)
 
 #step 2 also build application data for timeline
@@ -98,7 +98,7 @@ all_months <- seq(
 )
 
 #Get all unique school names
-all_schools <- app_data %>%
+all_schools <- app_data |>
   distinct(Dis, Sch)
 
 #Create a full combination grid
@@ -106,34 +106,34 @@ grid <- expand_grid(all_schools, appdate_month = all_months)
 
 
 #count actual records
-actual_counts <- app_data %>%
+actual_counts <- app_data |>
   count(Dis, Sch, appdate_month)
 
-counts_filled <- grid %>%
-  left_join(actual_counts, by = c("Dis", "Sch", "appdate_month")) %>%
+counts_filled <- grid |>
+  left_join(actual_counts, by = c("Dis", "Sch", "appdate_month")) |>
   mutate(n = replace_na(n, 0))
 
-counts_filled<-counts_filled %>%
-  filter(! appdate_month < "2024-06-01") %>%
-  arrange(Dis,Sch, appdate_month) %>%  # ensure chronological order
-  group_by(Dis,Sch) %>%
-  summarise(counts = list(n)) %>%
+counts_filled<-counts_filled |>
+  filter(! appdate_month < "2024-06-01") |>
+  arrange(Dis,Sch, appdate_month) |>  # ensure chronological order
+  group_by(Dis,Sch) |>
+  summarise(counts = list(n)) |>
   ungroup() 
 
 school_summary2<-left_join(school_summary,
                            counts_filled,
-                           by = c("DistrictID"="Dis", "SchoolID"="Sch"))  %>%
+                           by = c("DistrictID"="Dis", "SchoolID"="Sch"))  |>
   mutate(priorit_col = case_when(
     Priority == "orange" ~ "orange",
     TRUE ~ 'grey'
-  )) %>%
+  )) |>
    mutate(priorit_col2 = case_when(
     priorit_col == "orange" ~ "In orange square",
     priorit_col == "grey" ~ "Not in orange square"
-  )) %>%
-  select(-c(Priority)) %>%
-  relocate(avg_perc_eligible, .after =total_n_eligible) %>%
-  relocate(avg_perc_enroll, .after = avg_perc_eligible) %>%
+  )) |>
+  select(-c(Priority)) |>
+  relocate(avg_perc_eligible, .after =total_n_eligible) |>
+  relocate(avg_perc_enroll, .after = avg_perc_eligible) |>
   rename('School Type' = priorit_col2)  
 
 
@@ -144,14 +144,22 @@ school_summary2<-left_join(school_summary,
 Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
-
+#load libraries needed
+require(tidyverse)
+require(reactable)
+require(reactablefmtr)
+require(viridis)
+require(wesanderson)
+require(scales)
+require(htmlwidgets)
+require(htmltools)
 
 school_summary2 <- school_summary2 
-district_level<-school_summary2 %>%
-  group_by(DISTRICT_NAME) %>%
+district_level<-school_summary2 |>
+  group_by(DISTRICT_NAME) |>
   summarise(total_eligible_d= sum(total_n_eligible),
             avg_eligiblity = mean(avg_perc_eligible),
-             avg_enroll = mean(avg_perc_enroll)) %>%
+             avg_enroll = mean(avg_perc_enroll)) |>
   drop_na(DISTRICT_NAME)
 
 reactable(
@@ -347,7 +355,7 @@ reactable(
   #filter by index for specific schools within a district
    details = function(index) {
     district <- district_level$DISTRICT_NAME[index]
-    detail_data <- school_summary2 %>% filter(DISTRICT_NAME == district)%>%
+    detail_data <- school_summary2 |> filter(DISTRICT_NAME == district)|>
       select(-c("School Type","SchoolID","DISTRICT_NAME"))
     
     #start of the first nested table
@@ -560,9 +568,9 @@ reactable(
      details = function(index){
     school <- detail_data$SCHOOL_NAME_LONG[index]
     District_id <- detail_data$DistrictID[index]
-    detail_data1 <- Gradeleveltabs %>% filter(SCHOOL_NAME_LONG == school & DistrictID == District_id) %>%
-      select(-c(DISTRICT_NAME, SCHOOL_NAME_LONG, DistrictID, SchoolID,n_enrolled, n_total)) %>%
-      relocate(perc_eligible, .before = n_eligible) %>%
+    detail_data1 <- Gradeleveltabs |> filter(SCHOOL_NAME_LONG == school & DistrictID == District_id) |>
+      select(-c(DISTRICT_NAME, SCHOOL_NAME_LONG, DistrictID, SchoolID,n_enrolled, n_total)) |>
+      relocate(perc_eligible, .before = n_eligible) |>
             relocate(perc_enroll, .before = perc_eligible)
 
     reactable(
