@@ -35,8 +35,7 @@ jobs:
       - name: Install R packages
         run: |
           Rscript -e 'install.packages(c(
-            "dplyr",
-            "ggplot2",
+            "tidyverse",
             "scales",
             "viridis",
             "wesanderson",
