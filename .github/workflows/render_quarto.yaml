@@ -1,9 +1,8 @@
 name: Render Single Quarto Doc
 
-# Trigger only after another workflow finishes successfully
 on:
   workflow_run:
-    workflows: ["R Data Processing and Commit"]  # replace with your actual workflow name
+    workflows: ["R Data Processing and Commit"]  # adjust if needed
     types:
       - completed
 
@@ -25,9 +24,19 @@ jobs:
       - name: Install Quarto CLI
         uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Install R packages
-        run: |
-          R -e 'install.packages(c("tidyverse","reactable","reactablefmtr","ggplot2","viridis", "htmlwidgets" , "scales", "htmltools"), repos="https://cloud.r-project.org")'
+      - name: Install R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            tidyverse
+            dplyr
+            ggplot2
+            reactable
+            reactablefmtr
+            viridis
+            htmlwidgets
+            scales
+            htmltools
 
       - name: Render specific Quarto doc
         run: quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
