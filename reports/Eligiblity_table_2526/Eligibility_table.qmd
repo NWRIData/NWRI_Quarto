@@ -3,7 +3,8 @@ title: "Eligibility Table (Last updated: `r format(Sys.Date(), '%B %d, %Y')`)"
 author: "NWRI D Team"
 output-dir: ../../docs/
 format:
-  html: 
+  html:
+    self-contained: true
     toc: true
     toc-location: left
     toc-title: "Contents"
