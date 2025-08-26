@@ -39,4 +39,4 @@ dbx.files_download_to_file(local_path_eligiblitytable, latest.path_display)
 dbx.files_download_to_file(local_path_heat, latest.path_display)
 
 
-print(f"Downloaded {latest.name} to {local_path}")
+print(f"Downloaded {latest.name} to both report folders")
