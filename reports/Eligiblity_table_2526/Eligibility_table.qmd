@@ -19,9 +19,7 @@ execute:
 
 ```{r setup, include=FALSE}
 
-print("Loading tidyverse....")
 require(dplyr)
-packageVersion("dplyr")
 require(reactable)
 require(reactablefmtr)
 require(viridis)
@@ -35,11 +33,6 @@ require(tidyr)
 ```
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
-
-#load libraries needed
-
-
-
 
 get_latest_rds <- function(dir_path, verbose = TRUE) {
   rds_files <- list.files(path = dir_path, pattern = "\\.rds$", full.names = TRUE)
