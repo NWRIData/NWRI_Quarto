@@ -47,10 +47,11 @@ writeLines(latest_file, last_processed_path)
 
 # Print it
 print(latest_file)
-datapp <- read.csv(latest_file, na.strings = c("NA", ""))
+dataapp <- read.csv(latest_file, na.strings = c("NA", ""))
 cat("Reading file from:", latest_file, "\n")
 
 MSID<-readRDS("reports/heatmap_districts/data/MSID_08112025.rds")
+cat("Reading file from:", "reports/heatmap_districts/data/MSID_08112025.rds", "\n")
 
 
 #set up data processing
