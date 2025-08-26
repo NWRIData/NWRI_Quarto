@@ -32,6 +32,7 @@ latest = files[0]
 # Create output dir and download
 os.makedirs("reports/Eligiblity_table_2526/dropbox_data/", exist_ok=True)
 local_path_eligiblitytable = os.path.join("reports/Eligiblity_table_2526/dropbox_data/", latest.name)
+os.makedirs("reports/heatmap_districts/dropbox_data/", exist_ok=True)
 local_path_heat = os.path.join("reports/heatmap_districts/dropbox_data/", latest.name)
 
 dbx.files_download_to_file(local_path_eligiblitytable, latest.path_display)
