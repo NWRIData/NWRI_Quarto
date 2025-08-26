@@ -21,6 +21,8 @@ This is the landing page for our data products.
 ### General:
 
 -   [📊 Eligibility & Enrollment Table 2025-26](reports/Eligiblity_table_2526/Eligibility_table.html)
+-   [📊 Enrollment Table 2025-26](reports/heatmap_districts/Heat_map_enroll.html)
+
 
 ## Reports
 
