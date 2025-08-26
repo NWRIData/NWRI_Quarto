@@ -1,0 +1,18 @@
+---
+title: "District enrollment activity (Last updated: `r format(Sys.Date(), '%B %d, %Y')`)"
+author: "NWRI D Team"
+output-dir: ../../docs/
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc-location: left
+    toc-title: "Contents"
+    page-layout: full
+    toc-depth: 2
+    toc-floating: true
+editor: visual
+execute:
+  echo: false
+  freeze: false
+---

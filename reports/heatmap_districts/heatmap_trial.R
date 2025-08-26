@@ -63,8 +63,10 @@ Enrollment_heat <- Enrollment_heat %>%
 
 
 reactable(Enrollment_heat,
+          theme = slate(centered = T,font_color = "white"),
           defaultSorted = 'total',defaultSortOrder = "desc",
-          wrap = TRUE,defaultPageSize = 100,
+          wrap = TRUE,
+          defaultPageSize = 100,
           height = 600,
           bordered = TRUE,
           highlight = TRUE,
@@ -72,12 +74,6 @@ reactable(Enrollment_heat,
           sortable = TRUE,
           pagination = FALSE,
           showSortIcon = FALSE,
-          theme = void(
-            centered = TRUE, 
-            cell_padding = 0,
-            header_font_color = 'black',
-            font_color = 'black'
-          ),
           defaultColDef = colDef(
             maxWidth = 50,
             align = 'center',
@@ -98,7 +94,7 @@ reactable(Enrollment_heat,
                            maxWidth = 225,
                            cell = data_bars(
                              data = Enrollment_heat,
-                             fill_color = wes_cols,
+                             fill_color = wes_cols,text_color = "white",
                              bias = 1.4,
                              fill_opacity = 0.9,
                              background = 'transparent',

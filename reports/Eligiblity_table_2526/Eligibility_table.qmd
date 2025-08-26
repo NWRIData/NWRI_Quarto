@@ -166,7 +166,7 @@ district_level<-school_summary2 |>
 reactable(
   wrap = TRUE,defaultPageSize = 100,
   defaultSorted = 'total_eligible_d',defaultSortOrder = "desc",
-  elementId = "school-table",highlight = TRUE,
+  elementId = "school-table", highlight = TRUE,
   district_level,
   theme = slate(centered = T),
 
