@@ -23,6 +23,7 @@ require(reactable)
 require(reactablefmtr)
 require(viridis)
 require(wesanderson)
+require(htmltools)
 ```
 
 
@@ -48,6 +49,9 @@ get_latest_rds <- function(dir_path, verbose = TRUE) {
 }
 
 Enrollment_heat<-get_latest_rds("heatmapdata/")
+enroll_heat_week<-get_latest_rds("heatmapdataweekly/")
+objectlist<-get_latest_rds("reactable_element")
+
 ```
 
 
@@ -100,4 +104,90 @@ reactable(Enrollment_heat,
 
 
 
+```
+
+TEXT HERE
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
+  function(values, name) {
+    dataListId <- sprintf("%s-%s-list", tableId, name)
+    tagList(
+      tags$input(
+        type = "text",
+        list = dataListId,
+        oninput = sprintf(
+          "Reactable.setFilter('%s', '%s', event.target.value || undefined)",
+          tableId, name
+        ),
+        "aria-label" = sprintf("Filter %s", name),
+        style = style
+      ),
+      tags$datalist(
+        id = dataListId,
+        lapply(unique(values), function(value) tags$option(value = value))
+      )
+    )
+  }
+}
+
+
+reactable(enroll_heat_week,
+          theme = slate(centered = T,font_color = "white"),
+          defaultSorted = 'total',defaultSortOrder = "desc",
+          wrap = TRUE,defaultPageSize = 100,
+          height = 600,
+          bordered = TRUE,
+          highlight = TRUE,
+          resizable = TRUE,
+          sortable = TRUE,
+          pagination = FALSE,
+          showSortIcon = FALSE,
+                elementId = "districts-table",
+
+          defaultColDef = colDef(
+            maxWidth = 50,
+            align = 'center',
+            cell = tooltip(),
+            style = color_scales(
+              data = enroll_heat_week,
+              span = 2:(ncol(enroll_heat_week)),
+              colors = wes_cols,
+              bias = 3,
+              opacity = 0.8,
+              show_text = FALSE
+            )
+          ),
+          
+          columnGroups = objectlist,   
+          columns = list(
+            DISTRICT_NAME = colDef(name = "District", 
+                                   filterable = T,
+                                   filterInput = dataListFilter("districts-table"),
+      filterMethod = JS("
+        function(rows, columnId, filterValue) {
+          if (!filterValue) return rows;
+          const terms = filterValue.toLowerCase().split(',').map(t => t.trim());
+          return rows.filter(row => {
+            const cell = row.values[columnId].toLowerCase();
+            return terms.some(term => cell.includes(term));
+          });
+        }
+      "),
+                                   maxWidth = 200),
+            total = colDef(name = "Annual Total",
+                           maxWidth = 225,
+                           cell = data_bars(
+                             data = enroll_heat_week,
+                             fill_color = wes_cols,text_color = "white",
+                             bias = 1.4,
+                             fill_opacity = 0.9,
+                             background = 'transparent',
+                             bar_height = 40,
+                             text_position = 'outside-end'
+                           ),
+                           style = list(borderLeft = "2px solid #999999")
+            )
+          )
+)
 ```
