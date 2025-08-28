@@ -50,9 +50,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
           git add reports/Eligiblity_table_2526/data*.rds
           git diff --cached --quiet || git commit -m "Daily eligibility data update $(date -u +'%Y-%m-%d')"
-          git pull --rebase origin main
           git push
 
   # ---- Job 3: Heatmap Processing ----
@@ -69,9 +69,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
           git add reports/heatmap_districts/data*.rds
           git diff --cached --quiet || git commit -m "Daily heatmap data update $(date -u +'%Y-%m-%d')"
-          git pull --rebase origin main
           git push
 
   # ---- Job 4: Render Quarto ----
