@@ -26,11 +26,15 @@ jobs:
           pip3 install dropbox
       - name: Run Python script
         run: python dropbox_api.py
-      - name: Upload downloaded data
-        uses: actions/upload-artifact@v4
+      - name: Upload latest Dropbox file
+        run: |
+          latest_file=$(ls -1t reports/Eligiblity_table_2526/dropbox_data/*.csv | head -n 1)
+          echo "Latest file is: $latest_file"
+          echo "latest_file=$latest_file" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
         with:
           name: dropbox-data
-          path: reports/Eligiblity_table_2526/dropbox_data/
+          path: ${{ env.latest_file }}
 
   # ---- Job 2: R Data Processing ----
   process-eligibility:
@@ -47,13 +51,12 @@ jobs:
         run: Rscript -e 'install.packages(c("dplyr","here","stringr"), repos="https://cloud.r-project.org")'
       - name: Run eligibility processing
         run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
-      - name: Set latest eligibility file
+      - name: Upload eligibility output (latest)
         run: |
           latest_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
           echo "Uploading $latest_file"
           echo "latest_file=$latest_file" >> $GITHUB_ENV
-      - name: Upload eligibility artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: eligibility-data
           path: ${{ env.latest_file }}
@@ -122,8 +125,10 @@ jobs:
             "wesanderson","htmlwidgets","htmltools","reactable","reactablefmtr"
           ), repos="https://cloud.r-project.org")'
 
-      - name: Render Quarto doc
-        run: quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
+      - name: Render Quarto docs
+        run: |
+          quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
+          quarto render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
 
       - name: Commit all changes
         run: |
