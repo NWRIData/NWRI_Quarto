@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: eligibility-data
-          path: reports/Eligiblity_table_2526/*.rds
+          path: reports/Eligiblity_table_2526/data/*.rds
 
   # ---- Job 3: Heatmap Processing ----
   process-heatmap:
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: heatmap-data
+          name: dropbox-data
           path: reports/heatmap_districts/dropbox_data/
       - uses: r-lib/actions/setup-r@v2
       - name: Install R packages
@@ -72,7 +72,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: heatmap-data
-          path: reports/heatmap_districts/*.rds
+          path:  |
+            reports/heatmap_districts/heatmapdata/*.rds
+            reports/heatmap_districts/heatmapdataweekly/*.rds
+            reports/heatmap_districts/reactable_element/*.rds
 
   # ---- Job 4: Render Quarto + Final Commit ----
   render:
