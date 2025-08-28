@@ -34,14 +34,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dropbox-eligibility
-          path: reports/Eligiblity_table_2526/dropbox_data/latest_file.csv
+          path: reports/Eligiblity_table_2526/dropbox_data/*.csv
 
       # Upload heatmap table as its own artifact
       - name: Upload heatmap table artifact
         uses: actions/upload-artifact@v4
         with:
           name: dropbox-heatmap
-          path: reports/heatmap_districts/dropbox_data/latest_file.csv
+          path: reports/heatmap_districts/dropbox_data/*.csv
 
   # ---- Job 2: R Data Processing ----
   process-eligibility:
