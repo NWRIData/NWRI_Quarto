@@ -4,8 +4,6 @@ library(dplyr)
 library(tidyr)
 library(here)
 require(reactable)
-require(reactablefmtr)
-
 
 
 #establish date of the system for file labelling
@@ -147,7 +145,7 @@ columns_headers<-data.frame(value =as.Date(namedates) , name = names) %>%
 objectlist<-list()
 for (i in 1:length(columns_headers$name)) {
   
-  objectlist[[i]]<-colGroup(name = columns_headers$name[[i]], 
+  objectlist[[i]]<-reactable::colGroup(name = columns_headers$name[[i]], 
                             columns = as.character(columns_headers$data[[i]][[1]]),
                             headerStyle = list(
                               borderRight = "1px solid white",
