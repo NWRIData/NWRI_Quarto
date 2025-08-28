@@ -1,6 +1,6 @@
 name: Weekly Dropbox Download
 
-on:
+# on:
   push:
     branches: [main]
   schedule:

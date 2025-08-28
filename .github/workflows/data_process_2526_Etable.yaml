@@ -1,6 +1,6 @@
 name: R Data Processing and Commit
 
-on:
+# on:
   workflow_run:
     workflows: ["Weekly Dropbox Download"]   # must exactly match Workflow A's name
     types:

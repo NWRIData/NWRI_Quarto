@@ -1,6 +1,6 @@
 name: Heatmap R Data Processing
 
-on:
+#on:
   workflow_run:
     workflows: ["Weekly Dropbox Download"]   # must exactly match Workflow A's name
     types:

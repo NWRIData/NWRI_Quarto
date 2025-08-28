@@ -1,0 +1,108 @@
+name: Full Data Pipeline
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Weekdays only (1–5 = Mon–Fri)
+    # DST: March–November
+    - cron: '0 11 * 3-11 1-5'   # 7 AM ET
+    - cron: '0 19 * 3-11 1-5'   # 3 PM ET
+    # Standard Time: Jan, Feb, Dec
+    - cron: '0 12 * 1,2,12 1-5' # 7 AM ET
+    - cron: '0 20 * 1,2,12 1-5' # 3 PM ET
+  workflow_dispatch:
+
+jobs:
+
+  # ---- Job 1: Download from Dropbox ----
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python and Dropbox SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install dropbox
+      - name: Run Python script
+        run: python dropbox_api.py
+      - name: Commit and push downloaded file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/Eligiblity_table_2526/dropbox_data/
+          git diff --cached --quiet || git commit -m "Add/update downloaded file from Dropbox"
+          git pull --rebase origin main
+          git push
+
+  # ---- Job 2: R Data Processing ----
+  process-eligibility:
+    runs-on: ubuntu-latest
+    needs: download
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+      - name: Install R packages
+        run: Rscript -e 'install.packages(c("dplyr","here","stringr"), repos="https://cloud.r-project.org")'
+      - run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
+      - name: Commit processed files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/Eligiblity_table_2526/data*.rds
+          git diff --cached --quiet || git commit -m "Daily eligibility data update $(date -u +'%Y-%m-%d')"
+          git pull --rebase origin main
+          git push
+
+  # ---- Job 3: Heatmap Processing ----
+  process-heatmap:
+    runs-on: ubuntu-latest
+    needs: download
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+      - name: Install R packages
+        run: Rscript -e 'install.packages(c("dplyr","here","tidyr","lubridate"), repos="https://cloud.r-project.org")'
+      - run: Rscript reports/heatmap_districts/setting_up_enrollment_heat.R
+      - name: Commit processed files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/heatmap_districts/data*.rds
+          git diff --cached --quiet || git commit -m "Daily heatmap data update $(date -u +'%Y-%m-%d')"
+          git pull --rebase origin main
+          git push
+
+  # ---- Job 4: Render Quarto ----
+  render:
+    runs-on: ubuntu-latest
+    needs: [process-eligibility, process-heatmap]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+      - uses: quarto-dev/quarto-actions/setup@v2
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libcairo2-dev libgit2-dev
+      - name: Install R packages
+        run: |
+          Rscript -e 'install.packages(c(
+            "tidyr","stringr","lubridate","dplyr","scales","viridis",
+            "wesanderson","htmlwidgets","htmltools","reactable","reactablefmtr"
+          ), repos="https://cloud.r-project.org")'
+      - name: Render Quarto doc
+        run: quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
+      - name: Commit rendered site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Auto-update site [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push

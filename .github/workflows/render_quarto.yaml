@@ -1,6 +1,6 @@
 name: Render Single Quarto Doc
 
-on:
+# on:
   workflow_run:
     workflows: ["R Data Processing and Commit"]
     types:
