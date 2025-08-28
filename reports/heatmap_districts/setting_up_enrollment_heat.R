@@ -3,6 +3,9 @@ library(lubridate)
 library(dplyr)
 library(tidyr)
 library(here)
+require(reactable)
+require(reactablefmtr)
+
 
 
 #establish date of the system for file labelling
