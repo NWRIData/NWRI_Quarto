@@ -19,29 +19,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Python and Dropbox SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
           pip3 install dropbox
-
       - name: Run Python script
         run: python dropbox_api.py
-
-      # Upload eligibility table as its own artifact
-      - name: Upload eligibility table artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload latest downloaded eligibility file
+        run: |
+          latest_file=$(ls -1t reports/Eligiblity_table_2526/dropbox_data/* | head -n 1)
+          echo "Uploading $latest_file"
+          echo "latest_file=$latest_file" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
         with:
           name: dropbox-eligibility
-          path: reports/Eligiblity_table_2526/dropbox_data/*.csv
-
-      # Upload heatmap table as its own artifact
-      - name: Upload heatmap table artifact
-        uses: actions/upload-artifact@v4
+          path: ${{ env.latest_file }}
+      - name: Upload latest downloaded heatmap file
+        run: |
+          latest_file=$(ls -1t reports/heatmap_districts/dropbox_data/* | head -n 1)
+          echo "Uploading $latest_file"
+          echo "latest_file=$latest_file" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
         with:
           name: dropbox-heatmap
-          path: reports/heatmap_districts/dropbox_data/*.csv
+          path: ${{ env.latest_file }}
 
   # ---- Job 2: R Data Processing ----
   process-eligibility:
@@ -49,22 +51,16 @@ jobs:
     needs: download
     steps:
       - uses: actions/checkout@v4
-
-      # Download only the eligibility table artifact
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: reports/Eligiblity_table_2526/dropbox_data/
-
       - uses: r-lib/actions/setup-r@v2
       - name: Install R packages
         run: Rscript -e 'install.packages(c("dplyr","here","stringr"), repos="https://cloud.r-project.org")'
-
       - name: Run eligibility processing
         run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
-
-      # Upload the latest processed RDS file as an artifact
-      - name: Upload eligibility outputs
+      - name: Upload latest eligibility output
         run: |
           latest_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
           echo "Uploading $latest_file"
@@ -80,29 +76,31 @@ jobs:
     needs: download
     steps:
       - uses: actions/checkout@v4
-
-      # Download only the heatmap table artifact
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
           path: reports/heatmap_districts/dropbox_data/
-
       - uses: r-lib/actions/setup-r@v2
       - name: Install R packages
         run: Rscript -e 'install.packages(c("dplyr","here","tidyr","lubridate","reactable"), repos="https://cloud.r-project.org")'
-
       - name: Run heatmap processing
         run: Rscript reports/heatmap_districts/setting_up_enrollment_heat.R
-
-      # Upload processed heatmap outputs
-      - name: Upload heatmap outputs
-        uses: actions/upload-artifact@v4
+      - name: Upload latest heatmap outputs
+        run: |
+          latest_data=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds | head -n 1)
+          latest_weekly=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds | head -n 1)
+          latest_coldef=$(ls -1t reports/heatmap_districts/reactable_element/*.rds | head -n 1)
+          echo "Uploading $latest_data, $latest_weekly, $latest_coldef"
+          echo "latest_data=$latest_data" >> $GITHUB_ENV
+          echo "latest_weekly=$latest_weekly" >> $GITHUB_ENV
+          echo "latest_coldef=$latest_coldef" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
         with:
           name: heatmap-data
-          path:  |
-            reports/heatmap_districts/heatmapdata/*.rds
-            reports/heatmap_districts/heatmapdataweekly/*.rds
-            reports/heatmap_districts/reactable_element/*.rds
+          path: |
+            ${{ env.latest_data }}
+            ${{ env.latest_weekly }}
+            ${{ env.latest_coldef }}
 
   # ---- Job 4: Render Quarto + Final Commit ----
   render:
@@ -112,8 +110,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-
-      # Download all required artifacts for final rendering
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
@@ -121,7 +117,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: eligibility-data
-          path: reports/Eligiblity_table_2526/
+          path: reports/Eligiblity_table_2526/data/
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
@@ -130,29 +126,25 @@ jobs:
         with:
           name: heatmap-data
           path: reports/heatmap_districts/
-
       - uses: r-lib/actions/setup-r@v2
       - uses: quarto-dev/quarto-actions/setup@v2
-
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libcurl4-openssl-dev libssl-dev libxml2-dev \
             libcairo2-dev libgit2-dev
-
       - name: Install R packages
         run: |
           Rscript -e 'install.packages(c(
             "tidyr","stringr","lubridate","dplyr","scales","viridis",
             "wesanderson","htmlwidgets","htmltools","reactable","reactablefmtr"
           ), repos="https://cloud.r-project.org")'
-
-      - name: Render Quarto doc
+      - name: Render Quarto docs
         run: |
           quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
-          quarto render reports/heatmap_districts/Heatmap_table.qmd --to html --output-dir docs
-
+          # Add another quarto render here if needed
+          # quarto render reports/heatmap_districts/Heatmap_doc.qmd --to html --output-dir docs
       - name: Commit all changes
         run: |
           git config user.name "github-actions[bot]"
