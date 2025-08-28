@@ -48,10 +48,14 @@ jobs:
       - name: Run eligibility processing
         run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
       - name: Upload eligibility outputs
+        run: | 
+          latest_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
+          echo "Uploading $latest_file"
+          echo "latest_file=$latest_file" >> $GITHUB_ENV
         uses: actions/upload-artifact@v4
         with:
           name: eligibility-data
-          path: reports/Eligiblity_table_2526/data/*.rds
+          path: ${{ env.latest_file }}
 
   # ---- Job 3: Heatmap Processing ----
   process-heatmap:
