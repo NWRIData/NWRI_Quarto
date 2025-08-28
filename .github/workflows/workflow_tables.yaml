@@ -47,11 +47,12 @@ jobs:
         run: Rscript -e 'install.packages(c("dplyr","here","stringr"), repos="https://cloud.r-project.org")'
       - name: Run eligibility processing
         run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
-      - name: Upload eligibility outputs
-        run: | 
+      - name: Set latest eligibility file
+        run: |
           latest_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
           echo "Uploading $latest_file"
           echo "latest_file=$latest_file" >> $GITHUB_ENV
+      - name: Upload eligibility artifact
         uses: actions/upload-artifact@v4
         with:
           name: eligibility-data
@@ -76,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: heatmap-data
-          path:  |
+          path: |
             reports/heatmap_districts/heatmapdata/*.rds
             reports/heatmap_districts/heatmapdataweekly/*.rds
             reports/heatmap_districts/reactable_element/*.rds
