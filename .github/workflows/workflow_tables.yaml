@@ -14,7 +14,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   # ---- Job 1: Download from Dropbox ----
   download:
     runs-on: ubuntu-latest
@@ -27,7 +26,11 @@ jobs:
           pip3 install dropbox
       - name: Run Python script
         run: python dropbox_api.py
-      # ✅ no git commit here
+      - name: Upload downloaded data
+        uses: actions/upload-artifact@v4
+        with:
+          name: dropbox-data
+          path: reports/Eligiblity_table_2526/dropbox_data/
 
   # ---- Job 2: R Data Processing ----
   process-eligibility:
@@ -35,32 +38,69 @@ jobs:
     needs: download
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dropbox-data
+          path: reports/Eligiblity_table_2526/dropbox_data/
       - uses: r-lib/actions/setup-r@v2
       - name: Install R packages
         run: Rscript -e 'install.packages(c("dplyr","here","stringr"), repos="https://cloud.r-project.org")'
-      - run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
-      # ✅ no git commit here
+      - name: Run eligibility processing
+        run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
+      - name: Upload eligibility outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: eligibility-data
+          path: reports/Eligiblity_table_2526/*.rds
 
   # ---- Job 3: Heatmap Processing ----
   process-heatmap:
     runs-on: ubuntu-latest
-    needs: download
+    needs: process-eligibility
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dropbox-data
+          path: reports/Eligiblity_table_2526/dropbox_data/
+      - uses: actions/download-artifact@v4
+        with:
+          name: heatmap-data
+          path: reports/heatmap_districts/dropbox_data/
       - uses: r-lib/actions/setup-r@v2
       - name: Install R packages
         run: Rscript -e 'install.packages(c("dplyr","here","tidyr","lubridate","reactable"), repos="https://cloud.r-project.org")'
-      - run: Rscript reports/heatmap_districts/setting_up_enrollment_heat.R
-      # ✅ no git commit here
+      - name: Run heatmap processing
+        run: Rscript reports/heatmap_districts/setting_up_enrollment_heat.R
+      - name: Upload heatmap outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: heatmap-data
+          path: reports/heatmap_districts/*.rds
 
-  # ---- Job 4: Render + Final Commit ----
+  # ---- Job 4: Render Quarto + Final Commit ----
   render:
     runs-on: ubuntu-latest
-    needs: [process-eligibility, process-heatmap]
+    needs: process-heatmap
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      # Download all artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: dropbox-data
+          path: reports/Eligiblity_table_2526/dropbox_data/
+      - uses: actions/download-artifact@v4
+        with:
+          name: eligibility-data
+          path: reports/Eligiblity_table_2526/
+      - uses: actions/download-artifact@v4
+        with:
+          name: heatmap-data
+          path: reports/heatmap_districts/
+
       - uses: r-lib/actions/setup-r@v2
       - uses: quarto-dev/quarto-actions/setup@v2
 
@@ -78,7 +118,7 @@ jobs:
             "wesanderson","htmlwidgets","htmltools","reactable","reactablefmtr"
           ), repos="https://cloud.r-project.org")'
 
-      - name: Run render
+      - name: Render Quarto doc
         run: quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
 
       - name: Commit all changes
