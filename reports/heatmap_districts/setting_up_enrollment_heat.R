@@ -136,10 +136,17 @@ enroll_heat_week<-dataapp %>%
 #remove columnnames that are not date
 namedates<-colnames(enroll_heat_week)[-c(1,ncol(enroll_heat_week))]
 names<-format(as.Date(namedates), "%b %Y")
-columns_headers<-data.frame(value =as.Date(namedates) , name = names) %>%
+columns_headers<-data.frame(value =format(as.Date(namedates), "%m-%d") , name = names) %>%
   mutate(name =  as.character(name)) %>%
   group_by(name) |>
   nest()
+
+
+enroll_heat_week1 <- enroll_heat_week %>%
+  rename_with(
+    ~ ifelse(.x %in% c("DISTRICT_NAME", "total"), .x, format(as.Date(.x), "%m-%d")),
+    .cols = -DISTRICT_NAME
+  ) 
 
 
 objectlist<-list()
@@ -149,7 +156,7 @@ for (i in 1:length(columns_headers$name)) {
                             columns = as.character(columns_headers$data[[i]][[1]]),
                             headerStyle = list(
                               borderRight = "1px solid white",
-                              background = "black",             # darker header for group
+                              background = "darkgrey",             # darker header for group
                               color = "white",
                               fontWeight = "bold"
                             ))
@@ -157,6 +164,6 @@ for (i in 1:length(columns_headers$name)) {
   
 }
 
-saveRDS(enroll_heat_week, file =here("reports","heatmap_districts", "heatmapdataweekly",paste0("heat_mapweekly",date,".rds")))
+saveRDS(enroll_heat_week1, file =here("reports","heatmap_districts", "heatmapdataweekly",paste0("heat_mapweekly",date,".rds")))
 saveRDS(objectlist, file =here("reports","heatmap_districts", "reactable_element",paste0("coldefweekly",date,".rds")))
 

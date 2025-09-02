@@ -17,6 +17,13 @@ execute:
   freeze: false
 ---
 
+<style>
+.quarto-title .subtitle {
+  font-size: 0.9em;   /* shrink font size */
+  color: #555;        /* optional: make it lighter */
+}
+</style>
+
 ```{r setup, include=FALSE}
 #load libraries
 require(reactable)
@@ -26,14 +33,13 @@ require(wesanderson)
 require(htmltools)
 ```
 
-
-
-::: {.panel-tabset}
-
+::: panel-tabset
 ## Monthly Enrollment
+
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 # Pick a palette, e.g. Moonrise1 has a nice red/blue/yellow
-wes_cols <- wes_palette("Zissou1", 200, type = "continuous")
+wes_cols <- viridis::viridis(n = 200)
+wes_cols <- colorRampPalette(c("white", "blue"))(200)  
 
 get_latest_rds <- function(dir_path, verbose = TRUE, return_name = FALSE) {
   rds_files <- list.files(path = dir_path, pattern = "\\.rds$", full.names = TRUE)
@@ -63,16 +69,13 @@ file_objectlist <- get_latest_rds("reactable_element", return_name = TRUE)
 
 ```
 
-
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
 
 reactable(Enrollment_heat,
-          theme = slate(centered = T,font_color = "white"),
           defaultSorted = 'total',defaultSortOrder = "desc",
           wrap = TRUE,
-          defaultPageSize = 100,
-          height = 600,
+          defaultPageSize = 100,height = "100%",
           bordered = TRUE,
           highlight = TRUE,
           resizable = TRUE,
@@ -99,7 +102,7 @@ reactable(Enrollment_heat,
                            maxWidth = 225,
                            cell = data_bars(
                              data = Enrollment_heat,
-                             fill_color = wes_cols,text_color = "white",
+                             fill_color = wes_cols,text_color = "black",
                              bias = 1.4,
                              fill_opacity = 0.9,
                              background = 'transparent',
@@ -115,8 +118,8 @@ reactable(Enrollment_heat,
 
 ```
 
-
 ## Weekly Enrollment
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
   function(values, name) {
@@ -141,11 +144,35 @@ dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
 }
 
 
+options(reactable.theme = reactableTheme(
+  color = "#000000",                        # black text
+  backgroundColor = "#E0E2E5",              # light slate gray table background
+  borderColor = "#B0B3B8",                  # medium gray borders
+  stripedColor = "#D6D8DB",                 # subtle striped rows
+  highlightColor = "#A9CCE3",               # light blue for hover
+  inputStyle = list(
+    backgroundColor = "#F0F2F5",
+    color = "#000000"
+  ),
+  selectStyle = list(
+    backgroundColor = "#F0F2F5",
+    color = "#000000"
+  ),
+  pageButtonHoverStyle = list(
+    backgroundColor = "#D0D4DB"
+  ),
+  pageButtonActiveStyle = list(
+    backgroundColor = "#B0B3B8"
+  )
+))
+
+
 reactable(enroll_heat_week,
-          theme = slate(centered = T,font_color = "white"),
-          defaultSorted = 'total',defaultSortOrder = "desc",
-          wrap = TRUE,defaultPageSize = 100,
-          height = 600,
+          defaultSorted = 'total',
+          defaultSortOrder = "desc",
+          wrap = TRUE,
+          defaultPageSize = 100,
+          height = "100%",
           bordered = TRUE,
           highlight = TRUE,
           resizable = TRUE,
@@ -153,7 +180,7 @@ reactable(enroll_heat_week,
           pagination = FALSE,
           showSortIcon = FALSE,
                 elementId = "districts-table",
-
+          
           defaultColDef = colDef(
             maxWidth = 50,
             align = 'center',
@@ -170,7 +197,7 @@ reactable(enroll_heat_week,
           
           columnGroups = objectlist,   
           columns = list(
-            DISTRICT_NAME = colDef(name = "District", 
+            DISTRICT_NAME = colDef(name = "District",    sticky = "left",
                                    filterable = T,
                                    filterInput = dataListFilter("districts-table"),
       filterMethod = JS("
@@ -185,10 +212,11 @@ reactable(enroll_heat_week,
       "),
                                    maxWidth = 200),
             total = colDef(name = "Annual Total",
+                           sticky = "right",
                            maxWidth = 225,
-                           cell = data_bars(
+                           cell = data_bars(number_fmt = scales::comma,
                              data = enroll_heat_week,
-                             fill_color = wes_cols,text_color = "white",
+                             fill_color = wes_cols,text_color = "black",
                              bias = 1.4,
                              fill_opacity = 0.9,
                              background = 'transparent',
@@ -199,7 +227,12 @@ reactable(enroll_heat_week,
             )
           )
 )
+
+
 ```
+
+```
+
 ## Build Info
 
 ```{r, echo=FALSE}
@@ -211,9 +244,4 @@ knitr::kable(
   caption = "Files used to generate this report"
 )
 ```
-
 :::
-
-
-
-
