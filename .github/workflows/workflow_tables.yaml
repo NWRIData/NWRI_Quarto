@@ -110,6 +110,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ensure full history for committing
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
@@ -149,7 +151,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
+          git fetch origin
+          git reset --hard origin/main
           git add -A
           git commit -m "Pipeline update $(date -u +'%Y-%m-%d') [skip ci]" || echo "No changes to commit"
           git push
