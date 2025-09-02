@@ -199,5 +199,4 @@ reactable(enroll_heat_week,
 
 :::
 
-TEXT HERE
 
