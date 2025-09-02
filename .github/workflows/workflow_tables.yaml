@@ -145,8 +145,7 @@ jobs:
       - name: Render Quarto docs
         run: |
           quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
-          # Add another quarto render here if needed
-          # quarto render reports/heatmap_districts/Heatmap_doc.qmd --to html --output-dir docs
+          quarto render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
       - name: Commit all changes
         run: |
           git config user.name "github-actions[bot]"

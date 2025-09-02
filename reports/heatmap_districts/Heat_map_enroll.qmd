@@ -1,5 +1,5 @@
 ---
-title: "District enrollment activity (Last updated: `r format(Sys.Date(), '%B %d, %Y')`)"
+title: "District enrollment activity (Last updated: `r format(Sys.time(), '%B %d, %Y %I:%M %p', tz = 'America/New_York')`)"
 author: "NWRI D Team"
 output-dir: ../../docs/
 format:
@@ -35,26 +35,31 @@ require(htmltools)
 # Pick a palette, e.g. Moonrise1 has a nice red/blue/yellow
 wes_cols <- wes_palette("Zissou1", 200, type = "continuous")
 
-get_latest_rds <- function(dir_path, verbose = TRUE) {
+get_latest_rds <- function(dir_path, verbose = TRUE, return_name = FALSE) {
   rds_files <- list.files(path = dir_path, pattern = "\\.rds$", full.names = TRUE)
   
-  if (length(rds_files) == 0) {
-    if (verbose) cat("No .rds files found in", dir_path, "\n")
-    return(NULL)
-  }
+  if (length(rds_files) == 0) return(if (return_name) NA else NULL)
   
   file_dates <- sub(".*?(\\d{4}-\\d{2}-\\d{1,2})\\.rds$", "\\1", basename(rds_files))
   file_dates <- as.Date(file_dates, format = "%Y-%m-%d")
   
   latest_file <- rds_files[which.max(file_dates)]
   
-  if (verbose) cat("Loaded file from:", latest_file, "\n")
-  readRDS(latest_file)
+  if (return_name) {
+    return(basename(latest_file))
+  } else {
+    return(readRDS(latest_file))
+  }
 }
 
-Enrollment_heat<-get_latest_rds("heatmapdata/")
-enroll_heat_week<-get_latest_rds("heatmapdataweekly/")
-objectlist<-get_latest_rds("reactable_element")
+
+Enrollment_heat <- get_latest_rds("heatmapdata/")
+enroll_heat_week <- get_latest_rds("heatmapdataweekly/")
+objectlist <- get_latest_rds("reactable_element")
+
+file_heatmap <- get_latest_rds("heatmapdata/", return_name = TRUE)
+file_heatmap_week <- get_latest_rds("heatmapdataweekly/", return_name = TRUE)
+file_objectlist <- get_latest_rds("reactable_element", return_name = TRUE)
 
 ```
 
@@ -195,8 +200,20 @@ reactable(enroll_heat_week,
           )
 )
 ```
+## Build Info
 
+```{r, echo=FALSE}
+knitr::kable(
+  data.frame(
+    Component = c("Heatmap Data", "Weekly Heatmap", "Column Definitions"),
+    File_Used = c(file_heatmap, file_heatmap_week, file_objectlist)
+  ),
+  caption = "Files used to generate this report"
+)
+```
 
 :::
+
+
 
 

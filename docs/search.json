@@ -177,8 +177,8 @@
   {
     "objectID": "reports/heatmap_districts/Heat_map_enroll.html",
     "href": "reports/heatmap_districts/Heat_map_enroll.html",
-    "title": "District enrollment activity (Last updated: September 02, 2025)",
+    "title": "District enrollment activity (Last updated: September 02, 2025 09:10 AM)",
     "section": "",
-    "text": "Monthly EnrollmentWeekly Enrollment"
+    "text": "Monthly EnrollmentWeekly EnrollmentBuild Info\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nFiles used to generate this report\n\n\nComponent\nFile_Used\n\n\n\n\nHeatmap Data\nheat_map2025-09-02.rds\n\n\nWeekly Heatmap\nheat_mapweekly2025-09-02.rds\n\n\nColumn Definitions\ncoldefweekly2025-09-02.rds"
   }
 ]
