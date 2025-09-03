@@ -609,5 +609,13 @@ reactable(
   #beginning of final grade by grade table here:
   
   
-)
+) %>% 
+  add_title(
+    title = html(
+      "Enrollment and Eligibility across Florida Schools <img src='images/NWRI_Logo_blue_orange.png' alt='New Worlds Reading' width='250' height='150'>"
+    ), 
+    align = 'left',
+    font_color = 'black',
+    margin = reactablefmtr::margin(t=10,r=0,b=15,l=0)
+  )
 ```

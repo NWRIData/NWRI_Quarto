@@ -140,7 +140,7 @@ jobs:
         run: |
           Rscript -e 'install.packages(c(
             "tidyr","stringr","lubridate","dplyr","scales","scico","viridis",
-            "htmlwidgets","htmltools","reactable","reactablefmtr"
+            "htmlwidgets","htmltools","reactable","reactablefmtr", "wesanderson"
           ), repos="https://cloud.r-project.org")'
       - name: Render Quarto docs
         run: |
