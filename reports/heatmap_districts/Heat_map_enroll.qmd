@@ -29,7 +29,7 @@ execute:
 require(reactable)
 require(reactablefmtr)
 require(viridis)
-require(wesanderson)
+require(cetcolor)
 require(htmltools)
 ```
 
@@ -38,8 +38,9 @@ require(htmltools)
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 # Pick a palette, e.g. Moonrise1 has a nice red/blue/yellow
-wes_cols <- viridis::viridis(n = 200)
-wes_cols <- colorRampPalette(c("white", "blue"))(200)  
+wes_cols <- colorRampPalette(c("#B8FAFF",  "#0019FF"))(200) 
+
+
 
 get_latest_rds <- function(dir_path, verbose = TRUE, return_name = FALSE) {
   rds_files <- list.files(path = dir_path, pattern = "\\.rds$", full.names = TRUE)
@@ -58,6 +59,7 @@ get_latest_rds <- function(dir_path, verbose = TRUE, return_name = FALSE) {
   }
 }
 
+last_processed<-readLines("dropbox_data/last_processed.txt")
 
 Enrollment_heat <- get_latest_rds("heatmapdata/")
 enroll_heat_week <- get_latest_rds("heatmapdataweekly/")
@@ -71,6 +73,28 @@ file_objectlist <- get_latest_rds("reactable_element", return_name = TRUE)
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
+
+options(reactable.theme = reactableTheme(
+  color = "#000000",                        # black text
+  backgroundColor = "#E0E2E5",              # light slate gray table background
+  borderColor = "#B0B3B8",                  # medium gray borders
+  stripedColor = "#D6D8DB",                 # subtle striped rows
+  highlightColor = "#A9CCE3",               # light blue for hover
+  inputStyle = list(
+    backgroundColor = "#F0F2F5",
+    color = "#000000"
+  ),
+  selectStyle = list(
+    backgroundColor = "#F0F2F5",
+    color = "#000000"
+  ),
+  pageButtonHoverStyle = list(
+    backgroundColor = "#D0D4DB"
+  ),
+  pageButtonActiveStyle = list(
+    backgroundColor = "#B0B3B8"
+  )
+))
 
 reactable(Enrollment_heat,
           defaultSorted = 'total',defaultSortOrder = "desc",
@@ -243,5 +267,13 @@ knitr::kable(
   ),
   caption = "Files used to generate this report"
 )
+
+knitr::kable(
+  data.frame(
+    Raw_File_Used = c(last_processed)
+  ))
+
+
+
 ```
 :::
