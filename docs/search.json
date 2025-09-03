@@ -177,8 +177,8 @@
   {
     "objectID": "reports/heatmap_districts/Heat_map_enroll.html",
     "href": "reports/heatmap_districts/Heat_map_enroll.html",
-    "title": "District enrollment activity (Last updated: September 03, 2025 07:23 AM)",
+    "title": "District enrollment activity (Last updated: September 03, 2025 02:09 PM)",
     "section": "",
-    "text": "Monthly EnrollmentWeekly EnrollmentBuild Info\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n```\n\n\n\n\n\nFiles used to generate this report\n\n\nComponent\nFile_Used\n\n\n\n\nHeatmap Data\nheat_map2025-09-02.rds\n\n\nWeekly Heatmap\nheat_mapweekly2025-09-02.rds\n\n\nColumn Definitions\ncoldefweekly2025-09-02.rds\n\n\n\n\n\n\n\n\n\n\n\nRaw_File_Used\n\n\n\n\n/Users/leo.ohyama/Documents/NWRI/NWRI_quarto/reports/heatmap_districts/dropbox_data/enrollments_20250825.csv"
+    "text": "Monthly EnrollmentWeekly EnrollmentBuild Info\n\n\n\n\nHover over cells to see values\n\n\n\n\n\n\n\n\nHover over cells to see values\n\n\nEnrollment #\n\n\n\n\n0\n\n\n\n\n\n17\n\n\n\n\n\n36\n\n\n\n\n\n75\n\n\n\n\n\n807\n\n\n\n\n\n\n\n\n\n\n\n\n\nFiles used to generate this report\n\n\nComponent\nFile_Used\n\n\n\n\nHeatmap Data\nheat_map2025-09-03.rds\n\n\nWeekly Heatmap\nheat_mapweekly2025-09-03.rds\n\n\nColumn Definitions\ncoldefweekly2025-09-03.rds\n\n\n\n\n\n\n\n\n\n\n\nRaw_File_Used\n\n\n\n\n/Users/leo.ohyama/Documents/NWRI/NWRI_quarto/reports/heatmap_districts/dropbox_data/enrollments_20250825.csv"
   }
 ]

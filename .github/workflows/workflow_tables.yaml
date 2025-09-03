@@ -139,8 +139,8 @@ jobs:
       - name: Install R packages
         run: |
           Rscript -e 'install.packages(c(
-            "tidyr","stringr","lubridate","dplyr","scales","viridis",
-            "wesanderson","htmlwidgets","htmltools","reactable","reactablefmtr"
+            "tidyr","stringr","lubridate","dplyr","scales","scico",
+            "htmlwidgets","htmltools","reactable","reactablefmtr"
           ), repos="https://cloud.r-project.org")'
       - name: Render Quarto docs
         run: |

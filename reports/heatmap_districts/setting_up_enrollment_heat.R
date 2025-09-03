@@ -61,7 +61,7 @@ cat("Reading file from:", "reports/heatmap_districts/data/MSID_08112025.rds", "\
 Enrollment_heat<-dataapp %>%
   drop_na(AdmissionDate) %>%
   drop_na(DistrictID) %>%
-  filter(EnrollmentDate > "2025-06-23") %>%
+  filter(AdmissionDate > "2025-06-23") %>%
   mutate(EnrollmentDate = as.Date(EnrollmentDate),
          AdmissionDate = as.Date(AdmissionDate)) %>%
   mutate(appdate_month = floor_date(EnrollmentDate, unit = "month")) %>%
@@ -84,13 +84,14 @@ Enrollment_heat<-dataapp %>%
   complete(DISTRICT_NAME, enroll_month_label, fill = list(n = 0)) %>%
   pivot_wider(names_from = 'enroll_month_label', values_from = 'n')  %>%
   ungroup() %>%
-  mutate(total = rowSums(across(where(is.numeric))))
+  mutate(total = rowSums(across(where(is.numeric)))) %>%
+  drop_na(DISTRICT_NAME)
 
 # extract just the month columns from your pivoted data
 enroll_month_cols <- Enrollment_heat %>%
   select(-DISTRICT_NAME) %>%           # drop county
   select(-total) %>% # drop helper cols if they still exist
-  colnames()
+  colnames() 
 
 month_order_enroll <- enroll_month_cols[order(as.Date(paste0("01 ", enroll_month_cols), format = "%d %b %Y"))]
 
@@ -105,7 +106,7 @@ saveRDS(Enrollment_heat, file =here("reports","heatmap_districts", "heatmapdata"
 enroll_heat_week<-dataapp %>%
   drop_na(AdmissionDate) %>%
   drop_na(DistrictID) %>%
-  filter(EnrollmentDate > "2025-06-22") %>%
+  filter(AdmissionDate > "2025-06-22") %>%
   mutate(
     EnrollmentDate = as.Date(EnrollmentDate),
     AdmissionDate = as.Date(AdmissionDate),
@@ -127,8 +128,8 @@ enroll_heat_week<-dataapp %>%
   complete(DISTRICT_NAME, enroll_week_label, fill = list(n = 0)) %>%
   pivot_wider(names_from = "enroll_week_label", values_from = "n") %>%
   ungroup() %>%
-  mutate(total = rowSums(across(where(is.numeric))))
-
+  mutate(total = rowSums(across(where(is.numeric)))) %>%
+  drop_na(DISTRICT_NAME)
 
 
 #now you need a table that also has the numbers
@@ -156,7 +157,7 @@ for (i in 1:length(columns_headers$name)) {
                             columns = as.character(columns_headers$data[[i]][[1]]),
                             headerStyle = list(
                               borderRight = "1px solid white",
-                              background = "darkgrey",             # darker header for group
+                              background = "grey",             # darker header for group
                               color = "white",
                               fontWeight = "bold"
                             ))
@@ -164,6 +165,34 @@ for (i in 1:length(columns_headers$name)) {
   
 }
 
+
+legendweekly<-dataapp %>%
+  drop_na(AdmissionDate) %>%
+  drop_na(DistrictID) %>%
+  filter(AdmissionDate > "2025-06-22") %>%
+  mutate(
+    EnrollmentDate = as.Date(EnrollmentDate),
+    AdmissionDate = as.Date(AdmissionDate),
+    appdate_week = floor_date(EnrollmentDate, unit = "week"),
+    enrolldate_week = floor_date(AdmissionDate, unit = "week")
+  ) %>%
+  # weekly labels instead of monthly
+  mutate(
+    app_week_label = format(appdate_week, "%Y-%m-%d"),
+    enroll_week_label = format(enrolldate_week, "%Y-%m-%d")
+  ) %>%
+  left_join(
+    MSID %>% select(DISTRICT, SCHOOL, DISTRICT_NAME, SCHOOL_NAME_LONG),
+    by = c("DistrictID" = "DISTRICT", "SchoolID" = "SCHOOL")
+  ) %>%
+  group_by(DISTRICT_NAME, enroll_week_label) %>%
+  count() %>%
+  ungroup() %>%
+  complete(DISTRICT_NAME, enroll_week_label, fill = list(n = 0)) %>%
+  group_by(n) %>%
+  filter(!duplicated(n))
+
 saveRDS(enroll_heat_week1, file =here("reports","heatmap_districts", "heatmapdataweekly",paste0("heat_mapweekly",date,".rds")))
 saveRDS(objectlist, file =here("reports","heatmap_districts", "reactable_element",paste0("coldefweekly",date,".rds")))
+saveRDS(legendweekly, file =here("reports","heatmap_districts", "weekly_legend",paste0("legendweekly",date,".rds")))
 

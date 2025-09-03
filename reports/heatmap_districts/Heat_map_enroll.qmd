@@ -28,8 +28,7 @@ execute:
 #load libraries
 require(reactable)
 require(reactablefmtr)
-require(viridis)
-require(cetcolor)
+require(scico)
 require(htmltools)
 ```
 
@@ -38,9 +37,17 @@ require(htmltools)
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 # Pick a palette, e.g. Moonrise1 has a nice red/blue/yellow
-wes_cols <- colorRampPalette(c("#B8FAFF",  "#0019FF"))(200) 
+
+#wes_cols <- colorRampPalette(c(
+ # "#f7fbff",  # very pale blue-white
+  #"#c6dbef",  # light sky
+  #"#6baed6",  # medium blue
+  #"#2171b5",  # royal blue
+  #"#08306b"   # dark navy
+#))(200)
 
 
+wes_cols <- scico(200, palette = "lapaz",direction = -1)  # blue to navy, very smooth
 
 get_latest_rds <- function(dir_path, verbose = TRUE, return_name = FALSE) {
   rds_files <- list.files(path = dir_path, pattern = "\\.rds$", full.names = TRUE)
@@ -64,6 +71,8 @@ last_processed<-readLines("dropbox_data/last_processed.txt")
 Enrollment_heat <- get_latest_rds("heatmapdata/")
 enroll_heat_week <- get_latest_rds("heatmapdataweekly/")
 objectlist <- get_latest_rds("reactable_element")
+legend_weekly <- get_latest_rds("weekly_legend")
+
 
 file_heatmap <- get_latest_rds("heatmapdata/", return_name = TRUE)
 file_heatmap_week <- get_latest_rds("heatmapdataweekly/", return_name = TRUE)
@@ -136,7 +145,15 @@ reactable(Enrollment_heat,
                            style = list(borderLeft = "2px solid #999999")
             )
           )
-)
+)|>
+  add_subtitle(
+    subtitle = 'Hover over cells to see values',
+    font_style = 'italic',
+    font_color = '#777777',
+    font_size = 18,
+    align = 'center',
+    margin = reactablefmtr::margin(t=0,r=0,b=10,l=0)
+  ) 
 
 
 
@@ -203,7 +220,7 @@ reactable(enroll_heat_week,
           sortable = TRUE,
           pagination = FALSE,
           showSortIcon = FALSE,
-                elementId = "districts-table",
+          elementId = "districts-table",
           
           defaultColDef = colDef(
             maxWidth = 50,
@@ -221,10 +238,12 @@ reactable(enroll_heat_week,
           
           columnGroups = objectlist,   
           columns = list(
-            DISTRICT_NAME = colDef(name = "District",    sticky = "left",
+            DISTRICT_NAME = colDef(name = "District",    
+                                   sticky = "left",
                                    filterable = T,
+                                   maxWidth = 200,
                                    filterInput = dataListFilter("districts-table"),
-      filterMethod = JS("
+                                   filterMethod = JS("
         function(rows, columnId, filterValue) {
           if (!filterValue) return rows;
           const terms = filterValue.toLowerCase().split(',').map(t => t.trim());
@@ -233,8 +252,7 @@ reactable(enroll_heat_week,
             return terms.some(term => cell.includes(term));
           });
         }
-      "),
-                                   maxWidth = 200),
+      ")),
             total = colDef(name = "Annual Total",
                            sticky = "right",
                            maxWidth = 225,
@@ -250,12 +268,27 @@ reactable(enroll_heat_week,
                            style = list(borderLeft = "2px solid #999999")
             )
           )
-)
+) |>
+  add_subtitle(
+    subtitle = 'Hover over cells to see values',
+    font_style = 'italic',
+    font_color = '#777777',
+    font_size = 18,
+    align = 'center',
+    margin = reactablefmtr::margin(t=0,r=0,b=10,l=0)
+  ) |>  add_legend(
+    data = legend_weekly,
+    align = 'left',
+    title = 'Enrollment #',
+    col_name = 'n',
+    colors = wes_cols,
+    bias = 3,    number_fmt = scales::comma 
+  )
 
 
 ```
 
-```
+
 
 ## Build Info
 
