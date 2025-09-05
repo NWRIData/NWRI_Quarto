@@ -193,6 +193,8 @@ legendweekly<-dataapp %>%
   filter(!duplicated(n))
 
 saveRDS(enroll_heat_week1, file =here("reports","heatmap_districts", "heatmapdataweekly",paste0("heat_mapweekly",date,".rds")))
+saveRDS(enroll_heat_week1, file =here("reports","Eligiblity_table_2526", "heatmapdataweekly",paste0("heat_mapweekly",date,".rds")))
+
 saveRDS(objectlist, file =here("reports","heatmap_districts", "reactable_element",paste0("coldefweekly",date,".rds")))
 saveRDS(legendweekly, file =here("reports","heatmap_districts", "weekly_legend",paste0("legendweekly",date,".rds")))
 

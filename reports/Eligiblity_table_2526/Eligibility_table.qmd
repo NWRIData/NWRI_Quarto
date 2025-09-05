@@ -1,11 +1,11 @@
 ---
-title: "Eligibility Table (Last updated: `r format(Sys.Date(), '%B %d, %Y')`)"
+title: "Table last updated: `r format(Sys.Date(), '%B %d, %Y')`"
 author: "NWRI D Team"
 output-dir: ../../docs/
 format:
   html:
     self-contained: true
-    toc: true
+    toc: false
     toc-location: left
     toc-title: "Contents"
     page-layout: full
@@ -16,6 +16,17 @@ execute:
   echo: false
   freeze: false
 ---
+
+<style>
+.ticker-wrap { width: 100%; overflow: hidden; background: #111; padding: 8px 0; }
+.ticker { display: flex; flex-wrap: nowrap; }
+.ticker-move { display: flex; flex-shrink: 0; animation: ticker-move 120s linear infinite; }
+.item { flex: 0 0 auto; margin-right: 2rem; color: #0f0; font-family: monospace; font-size: 1.2em; }
+@keyframes ticker-move { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.item.pos  { color: #9CD15C; }
+.item.neg  { color: #FA4616; }
+.item.zero { color: grey; }
+</style>
 
 ```{r setup, include=FALSE}
 
@@ -52,7 +63,7 @@ get_latest_rds <- function(dir_path, verbose = TRUE) {
 }
 
 Gradeleveltabs<-get_latest_rds("data/")
-
+enroll_heat_week <- get_latest_rds("heatmapdataweekly/")
 app_data<-readRDS("data/app_data.rds")
 
 #make a list of schools under average enrollment but over average eligibility
@@ -140,14 +151,47 @@ school_summary2<-school_summary  |>
 
 
 ```
-
 **Table guide**:
 
 Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
-
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
+#extract columns for most recent weeks
+recent_weeks<-enroll_heat_week[,c(1,ncol(enroll_heat_week)-1, ncol(enroll_heat_week)-2)]
 
+# compute raw and percent diffs
+recent_weeks$raw_diff  <- recent_weeks[[3]] - recent_weeks[[2]]
+recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks[[2]], 1)
+
+recent_weeks <- data.frame(
+  ticker    = recent_weeks$DISTRICT_NAME,
+  raw_diff  = recent_weeks$raw_diff,
+  perc_diff = recent_weeks$perc_diff
+)
+
+recent_weeks <- recent_weeks |> drop_na(perc_diff)
+
+# format with signs and build ticker items
+ticker_items <- paste0(
+  "<div class='item ",
+  ifelse(recent_weeks$perc_diff > 0, "pos",
+         ifelse(recent_weeks$perc_diff < 0, "neg", "zero")),
+  "'>",
+  recent_weeks$ticker, " ",
+  ifelse(recent_weeks$perc_diff > 0, "+", 
+         ifelse(recent_weeks$perc_diff < 0, "", "")), # add + sign only for positives
+  recent_weeks$perc_diff, "% (",
+  ifelse(recent_weeks$raw_diff > 0, "+", 
+         ifelse(recent_weeks$raw_diff < 0, "", "")),
+  recent_weeks$raw_diff, ")</div>",
+  collapse = ""
+)
+
+
+```
+
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 school_summary2 <- school_summary2 
 district_level<-school_summary2 |>
   group_by(DISTRICT_NAME) |>
@@ -156,7 +200,8 @@ district_level<-school_summary2 |>
              avg_enroll = mean(avg_perc_enroll)) |>
   drop_na(DISTRICT_NAME)
 
-reactable(
+# make table (without subtitle)
+tbl <- reactable(
   wrap = TRUE,defaultPageSize = 100,
   defaultSorted = 'total_eligible_d',defaultSortOrder = "desc",
   elementId = "school-table", highlight = TRUE,
@@ -578,7 +623,7 @@ reactable(
           cell = color_tiles(
             data = detail_data1,
             number_fmt = scales::label_percent(accuracy = 0.1),
-            colors = viridis::viridis(5)
+            colors = wes_palette("Zissou1", 100, type = "continuous")
           )),
         #percent enroll
           perc_enroll = colDef(
@@ -589,7 +634,7 @@ reactable(
           cell = color_tiles(
             data = detail_data1,
             number_fmt = scales::label_percent(accuracy = 0.1),
-            colors = viridis::viridis(5)
+            colors = wes_palette("Zissou1", 100, type = "continuous")
           )
         )
       
@@ -608,14 +653,37 @@ reactable(
   } #end of the first nested table function
   #beginning of final grade by grade table here:
   
-  
-) %>% 
-  add_title(
-    title = html(
-      "Enrollment and Eligibility across Florida Schools <img src='images/NWRI_Logo_blue_orange.png' alt='New Worlds Reading' width='250' height='150'>"
-    ), 
-    align = 'left',
-    font_color = 'black',
-    margin = reactablefmtr::margin(t=10,r=0,b=15,l=0)
-  )
+) 
+
+# external title 
+title <- div(
+  style = "text-align:center; color:black;
+           font-size:22px; font-weight:bold;
+           margin:10px 0 15px 0;",
+  HTML("Enrollment &amp; Eligibility across Florida Schools 
+        <img src='images/NWRI_Logo_blue_orange.png' 
+             alt='New Worlds Reading' width='225' height='125'> 
+        <img src='images/LCLearning_Primary RGB.png' 
+             alt='Learning Logo' width='350' height='100'>")
+)
+
+# ticker HTML
+ticker <- HTML(paste0('
+<div class="ticker-wrap">
+  <div class="ticker">
+    <div class="ticker-move">
+      ', ticker_items, ' ', ticker_items, '
+    </div>
+  </div>
+</div>
+'))
+
+# put them in exact order: subtitle → ticker → table
+tagList(
+  title,
+  ticker,
+  tbl
+)
 ```
+
+
