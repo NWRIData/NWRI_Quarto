@@ -13,6 +13,7 @@ format:
     toc-floating: true
 editor: visual
 execute:
+  cache: false
   echo: false
   freeze: false
 ---
