@@ -1,6 +1,7 @@
 ---
 title: "Table last updated: `r format(Sys.Date(), '%B %d, %Y')`"
 author: "NWRI D Team"
+date: last-modified
 output-dir: ../../docs/
 format:
   html:
