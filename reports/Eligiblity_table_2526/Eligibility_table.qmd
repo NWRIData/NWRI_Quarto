@@ -7,11 +7,8 @@ format:
   html:
     self-contained: true
     toc: false
-    toc-location: left
-    toc-title: "Contents"
-    page-layout: full
-    toc-depth: 2
-    toc-floating: true
+    page-layout: custom
+    css: styles.css
 editor: visual
 execute:
   cache: false
@@ -20,14 +17,72 @@ execute:
 ---
 
 <style>
-.ticker-wrap { width: 100%; overflow: hidden; background: #111; padding: 8px 0; }
-.ticker { display: flex; flex-wrap: nowrap; }
-.ticker-move { display: flex; flex-shrink: 0; animation: ticker-move 120s linear infinite; }
-.item { flex: 0 0 auto; margin-right: 2rem; color: #0f0; font-family: monospace; font-size: 1.2em; }
-@keyframes ticker-move { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.item.pos  { color: #9CD15C; }
-.item.neg  { color: #FA4616; }
-.item.zero { color: grey; }
+/* --- Wrapper bar --- */
+.ticker-wrap { 
+  width: 100%; 
+  overflow: hidden; 
+  background: #111;        
+  padding: 8px 0; 
+  display: flex;
+  align-items: center;
+  position: relative;       /* allow z-index inside */
+  z-index: 1;               /* base level */
+}
+
+/* --- Label that stays fixed --- */
+.ticker-label {
+  flex: 0 0 auto;
+  padding: 0.3rem 1rem;
+  margin-right: 0.5rem;
+  background: #333;
+  color: #fff;
+  font-family: monospace;
+  font-size: 1.1em;
+  border-radius: 4px;
+  white-space: nowrap;
+  position: relative;       /* allow z-index */
+  z-index: 10;              /* sit above scrolling ticker */
+}
+
+/* --- Scrolling ticker --- */
+.ticker { 
+  display: flex; 
+  flex-wrap: nowrap; 
+  flex: 1;                  /* take remaining width */
+  overflow: hidden;
+  position: relative;
+  z-index: 5;               /* below label */
+}
+
+.ticker-move { 
+  display: flex; 
+  flex-shrink: 0; 
+  animation: ticker-move 120s linear infinite;
+}
+
+/* --- Ticker items --- */
+.item { 
+  flex: 0 0 auto; 
+  margin-right: 2rem; 
+  font-family: monospace; 
+  font-size: 1.2em; 
+  white-space: nowrap;
+  opacity: 1;                
+  mix-blend-mode: normal;    
+  position: relative;
+  z-index: 1;               /* ensure below label */
+}
+
+/* Colors */
+.item.pos  { color: #4CFF4C; }
+.item.neg  { color: #FF6B6B; }
+.item.zero { color: #CCCCCC; }
+
+/* --- Animation --- */
+@keyframes ticker-move { 
+  from { transform: translateX(0); } 
+  to   { transform: translateX(-50%); } 
+}
 </style>
 
 ```{r setup, include=FALSE}
@@ -35,6 +90,7 @@ execute:
 require(dplyr)
 require(reactable)
 require(reactablefmtr)
+require(RColorBrewer)
 require(viridis)
 require(wesanderson)
 require(scales)
@@ -193,6 +249,7 @@ ticker_items <- paste0(
 ```
 
 
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 school_summary2 <- school_summary2 
 district_level<-school_summary2 |>
@@ -202,23 +259,112 @@ district_level<-school_summary2 |>
              avg_enroll = mean(avg_perc_enroll)) |>
   drop_na(DISTRICT_NAME)
 
-# make table (without subtitle)
-tbl <- reactable(
-  wrap = TRUE,defaultPageSize = 100,
-  defaultSorted = 'total_eligible_d',defaultSortOrder = "desc",
-  elementId = "school-table", highlight = TRUE,
-  district_level,
-  theme = slate(centered = T),
+font_size = 15
+font_color = "#aaaaaa"
+header_font_size = 16
+header_font_color = "#97999b"
+cell_padding = 6
+centered = FALSE
+#now create a theme for the table
+slate_change<-function (font_size = 15, font_color = "#aaaaaa", header_font_size = 16, 
+    header_font_color = "#97999b", cell_padding = 6, centered = FALSE, backcolor = "#272b30") 
+{
+    if (!is.logical(centered)) {
+        stop("`centered` must be TRUE or FALSE")
+    }
+    if (centered == TRUE) {
+        centered_content = list(display = "flex", flexDirection = "column", 
+            justifyContent = "center")
+    }
+    else {
+        centered_content = NULL
+    }
+    reactableTheme(cellStyle = centered_content, color = font_color, 
+        backgroundColor = backcolor, borderColor = "#272b30", 
+        borderWidth = "1px", stripedColor = "#464a4d", highlightColor = "#464a4d", 
+        cellPadding = cell_padding, tableStyle = list(fontSize = font_size), 
+        headerStyle = list(borderWidth = "2px", backgroundColor = backcolor, 
+            color = header_font_color, transitionDuration = "0.5s", 
+            `&:hover[aria-sort]` = list(backgroundColor = "#141516", 
+                color = "#ffffff"), `&[aria-sort='ascending'], &[aria-sort='descending']` = list(backgroundColor = "#141516", 
+                color = "#ffffff"), fontSize = header_font_size), 
+        groupHeaderStyle = list(`&:not(:empty)` = list(color = font_color, 
+            fontSize = header_font_size), `&:hover` = list(fontWeight = "bold", 
+            transitionDuration = "1s", transitionTimingFunction = "ease-out", 
+            color = "#ffffff")), searchInputStyle = list(backgroundColor = "#ffffff", 
+            color = "#aaaaaa", borderColor = "#dfe3e7", `&:focus` = list(color = "#aaaaaa")), 
+        inputStyle = list(backgroundColor = "#ffffff", color = "#aaaaaa"), 
+        rowSelectedStyle = list(backgroundColor = "#181a1c", 
+            color = "#ffffff"), selectStyle = list(backgroundColor = "#41464c", 
+            color = "#ffffff", borderColor = "#ffffff", outlineColor = "#ffffff", 
+            `&:hover` = list(backgroundColor = "#17191b", color = "#ffffff")), 
+        pageButtonStyle = list(backgroundColor = "#41464c", color = "#ffffff", 
+            `&:hover` = list(backgroundColor = "#17191b", color = "#ffffff")), 
+        pageButtonHoverStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"), pageButtonActiveStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"), pageButtonCurrentStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"))
+}
 
+#create custom filter for multiple values/strings
+dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
+  function(values, name) {
+    dataListId <- sprintf("%s-%s-list", tableId, name)
+    tagList(
+      tags$input(
+        type = "text",
+        list = dataListId,
+        oninput = sprintf(
+          "Reactable.setFilter('%s', '%s', event.target.value || undefined)",
+          tableId, name
+        ),
+        "aria-label" = sprintf("Filter %s", name),
+        style = style
+      ),
+      tags$datalist(
+        id = dataListId,
+        lapply(unique(values), function(value) tags$option(value = value))
+      )
+    )
+  }
+}
+```
+
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+#this is the main table
+tbl <- reactable(
+  wrap = TRUE,
+  defaultPageSize = 100,
+  defaultSorted = 'total_eligible_d',
+  defaultSortOrder = "desc",
+  elementId = "school-table", 
+  highlight = TRUE,
+  district_level,
+  theme = slate_change(centered = T,header_font_size = 20,font_size = 20),
   onClick = "expand",
   #start identifying the columns in the first table
   columns = list(
-    DISTRICT_NAME = colDef(name = "DISTRICT NAME",searchable = TRUE,filterable = TRUE),
+    DISTRICT_NAME = colDef(name = "DISTRICT NAME",
+                           searchable = TRUE,
+                           filterable = TRUE,
+                            filterInput = dataListFilter("school-table"),
+                           filterMethod = JS("
+        function(rows, columnId, filterValue) {
+          if (!filterValue) return rows;
+          const terms = filterValue.toLowerCase().split(',').map(t => t.trim());
+          return rows.filter(row => {
+            const cell = row.values[columnId].toLowerCase();
+            return terms.some(term => cell.includes(term));
+          });
+        }
+      ")
+                           ),
     #average enrollment by district
     avg_enroll = colDef(align = "center",
       name = "Enrolled %",
-      cell = data_bars(data = district_level, fill_color = "cyan",background = "black",
-                       bar_height = 7, text_position = 'outside-end',text_color = "white",round_edges = TRUE,
+      cell = data_bars(data = district_level, fill_color = "cyan",background = "#272b30",
+                       bar_height = 7, text_position = 'outside-end',text_color = "cyan",round_edges = TRUE,
                        number_fmt = scales::label_percent(accuracy = 0.1)),
       filterable = TRUE,
       filterMethod = htmlwidgets::JS("
@@ -357,7 +503,10 @@ tbl <- reactable(
         label_id <- paste0('label-', name)
         
         htmltools::tags$div(
-          htmltools::tags$span(id = label_id, paste0(min_val, " – ", max_val)),
+         htmltools::tags$span(
+  id = label_id,
+  paste0(format(min_val, big.mark = ","), " – ", format(max_val, big.mark = ","))
+),
           htmltools::tags$input(
             id = id_min,
             type = "range",
@@ -368,7 +517,8 @@ tbl <- reactable(
             oninput = sprintf("
               const min = parseInt(this.value);
               const max = parseInt(document.getElementById('%s').value);
-              document.getElementById('%s').innerText = min + ' – ' + max;
+              document.getElementById('%s').innerText = 
+  min.toLocaleString() + ' – ' + max.toLocaleString();
               Reactable.setFilter('school-table', '%s', { min: min, max: max });
             ", id_max, label_id, name),
             style = "width: 100%; margin-bottom: 4px;"
@@ -383,7 +533,8 @@ tbl <- reactable(
             oninput = sprintf("
               const max = parseInt(this.value);
               const min = parseInt(document.getElementById('%s').value);
-              document.getElementById('%s').innerText = min + ' – ' + max;
+              document.getElementById('%s').innerText = 
+  min.toLocaleString() + ' – ' + max.toLocaleString();
               Reactable.setFilter('school-table', '%s', { min: min, max: max });
             ", id_min, label_id, name),
             style = "width: 100%;"
@@ -391,7 +542,7 @@ tbl <- reactable(
         )
       }
     )
-  ), #end list cols for first table
+  ), #end list of columns for first table
   
   #filter by index for specific schools within a district
    details = function(index) {
@@ -403,7 +554,8 @@ tbl <- reactable(
     reactable(defaultPageSize = 20,
        defaultSorted = 'total_n_eligible',defaultSortOrder = "desc",
       elementId = "school_nested-table",
-      theme = nytimes(centered = TRUE, header_font_size = 16,font_color = "black"),
+      theme = slate_change(centered = T, header_font_size = 18,
+                           backcolor = "#49515a",font_size = 18),
       wrap = TRUE,
       detail_data, 
       fullWidth = T,
@@ -599,19 +751,20 @@ tbl <- reactable(
 
     reactable(
       wrap = TRUE,
+      theme = slate_change(backcolor = "#8a97a6",header_font_size = 16, font_color = "#181a1c",
+                           header_font_color = "white"),
       detail_data1,
       #start list of columns
       columns = list(
-        grade = colDef(name = "Grade", width = 80, align = "center"),
+        grade = colDef(name = "Grade", vAlign = "center", align = "center",maxWidth = 150,),
         #number of eligible students
         n_eligible = colDef(
-          name = "No. of Eligible Students",
+          name = "No. of Eligible Students",align = "center",vAlign = "center",
           format = colFormat(digits = 0, separators = TRUE),
-          cell = data_bars(
-            fill_color = 'black',
-            background = '#FFFFFF',
-            bar_height = 7,
-            text_position = 'outside-end',
+          cell = data_bars(fill_color = "cyan",
+            background = "transparent",text_size = 22,
+            bar_height = 9, text_position = 'outside-end',
+            text_color = "cyan",round_edges = TRUE,
             max_value = max(detail_data1$n_eligible),
             data = detail_data1
           )
@@ -619,24 +772,24 @@ tbl <- reactable(
         #percent eligible
         perc_eligible = colDef(
           name = "% Eligible by Grade",
+          vAlign = "center",align = "center",
+          minWidth = 250,
           format = colFormat(digits = 1),
-          align = "left",
           width = 100,
           cell = color_tiles(
             data = detail_data1,
             number_fmt = scales::label_percent(accuracy = 0.1),
-            colors = wes_palette("Zissou1", 100, type = "continuous")
+            colors = colorRampPalette(brewer.pal(9, "Blues"))(100)
           )),
         #percent enroll
           perc_enroll = colDef(
-          name = "% Enrolled by Grade",
+          name = "% Enrolled by Grade",vAlign = "center",align = "center",minWidth = 150,
           format = colFormat(digits = 1),
-          align = "left",
           width = 100,
           cell = color_tiles(
             data = detail_data1,
             number_fmt = scales::label_percent(accuracy = 0.1),
-            colors = wes_palette("Zissou1", 100, type = "continuous")
+            colors = colorRampPalette(brewer.pal(9, "Blues"))(100)
           )
         )
       
@@ -657,21 +810,22 @@ tbl <- reactable(
   
 ) 
 
-# external title 
+#  title 
 title <- div(
   style = "text-align:center; color:black;
            font-size:22px; font-weight:bold;
            margin:10px 0 15px 0;",
-  HTML("Enrollment &amp; Eligibility across Florida Schools 
+  HTML("Enrollment &amp; Eligibility Across Florida Schools 
         <img src='images/NWRI_Logo_blue_orange.png' 
              alt='New Worlds Reading' width='225' height='125'> 
         <img src='images/LCLearning_Primary RGB.png' 
-             alt='Learning Logo' width='350' height='100'>")
+             alt='Learning Logo' width='370' height='100'>")
 )
 
 # ticker HTML
 ticker <- HTML(paste0('
 <div class="ticker-wrap">
+<div class="ticker-label">Enrollments since last week:</div>
   <div class="ticker">
     <div class="ticker-move">
       ', ticker_items, ' ', ticker_items, '
@@ -680,7 +834,7 @@ ticker <- HTML(paste0('
 </div>
 '))
 
-# put them in exact order: subtitle → ticker → table
+# put them in exact order: title → ticker → table
 tagList(
   title,
   ticker,

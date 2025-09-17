@@ -6,11 +6,8 @@ format:
   html:
     self-contained: true
     toc: false
-    toc-location: left
-    toc-title: "Contents"
-    page-layout: full
-    toc-depth: 2
-    toc-floating: true
+    page-layout: custom
+    css: styles.css
 editor: visual
 execute:
   echo: false
@@ -19,21 +16,72 @@ execute:
 ---
 
 <style>
-.quarto-title .subtitle {
-  font-size: 0.9em;   /* shrink font size */
-  color: #555;        /* optional: make it lighter */
+/* --- Wrapper bar --- */
+.ticker-wrap { 
+  width: 100%; 
+  overflow: hidden; 
+  background: #111;        
+  padding: 8px 0; 
+  display: flex;
+  align-items: center;
+  position: relative;       /* allow z-index inside */
+  z-index: 1;               /* base level */
 }
-</style>
 
-<style>
-.ticker-wrap { width: 100%; overflow: hidden; background: #111; padding: 8px 0; }
-.ticker { display: flex; flex-wrap: nowrap; }
-.ticker-move { display: flex; flex-shrink: 0; animation: ticker-move 120s linear infinite; }
-.item { flex: 0 0 auto; margin-right: 2rem; color: #0f0; font-family: monospace; font-size: 1.2em; }
-@keyframes ticker-move { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.item.pos  { color: #9CD15C; }
-.item.neg  { color: #FA4616; }
-.item.zero { color: grey; }
+/* --- Label that stays fixed --- */
+.ticker-label {
+  flex: 0 0 auto;
+  padding: 0.3rem 1rem;
+  margin-right: 0.5rem;
+  background: #333;
+  color: #fff;
+  font-family: monospace;
+  font-size: 1.1em;
+  border-radius: 4px;
+  white-space: nowrap;
+  position: relative;       /* allow z-index */
+  z-index: 10;              /* sit above scrolling ticker */
+}
+
+/* --- Scrolling ticker --- */
+.ticker { 
+  display: flex; 
+  flex-wrap: nowrap; 
+  flex: 1;                  /* take remaining width */
+  overflow: hidden;
+  position: relative;
+  z-index: 5;               /* below label */
+}
+
+.ticker-move { 
+  display: flex; 
+  flex-shrink: 0; 
+  animation: ticker-move 120s linear infinite;
+}
+
+/* --- Ticker items --- */
+.item { 
+  flex: 0 0 auto; 
+  margin-right: 2rem; 
+  font-family: monospace; 
+  font-size: 1.2em; 
+  white-space: nowrap;
+  opacity: 1;                
+  mix-blend-mode: normal;    
+  position: relative;
+  z-index: 1;               /* ensure below label */
+}
+
+/* Colors */
+.item.pos  { color: #4CFF4C; }
+.item.neg  { color: #FF6B6B; }
+.item.zero { color: #CCCCCC; }
+
+/* --- Animation --- */
+@keyframes ticker-move { 
+  from { transform: translateX(0); } 
+  to   { transform: translateX(-50%); } 
+}
 </style>
 
 ```{r setup, include=FALSE}
@@ -232,6 +280,7 @@ subtitle <- div(
 # ticker HTML
 ticker <- HTML(paste0('
 <div class="ticker-wrap">
+<div class="ticker-label">Enrollments since last week:</div>
   <div class="ticker">
     <div class="ticker-move">
       ', ticker_items, ' ', ticker_items, '
@@ -239,6 +288,7 @@ ticker <- HTML(paste0('
   </div>
 </div>
 '))
+
 
 # put them in exact order: subtitle → ticker → table
 tagList(
@@ -314,7 +364,7 @@ tbl<-reactable(enroll_heat_week,
           elementId = "districts-table",
           
           defaultColDef = colDef(
-            maxWidth = 50,
+            minWidth = 40,
             align = 'center',
             cell = tooltip(),
             style = color_scales(
@@ -332,7 +382,7 @@ tbl<-reactable(enroll_heat_week,
             DISTRICT_NAME = colDef(name = "District",    
                                    sticky = "left",
                                    filterable = T,
-                                   maxWidth = 200,
+                                   minWidth = 100,
                                    filterInput = dataListFilter("districts-table"),
                                    filterMethod = JS("
         function(rows, columnId, filterValue) {
@@ -346,7 +396,7 @@ tbl<-reactable(enroll_heat_week,
       ")),
             total = colDef(name = "Annual Total",
                            sticky = "right",
-                           maxWidth = 225,
+                           minWidth = 225,
                            cell = data_bars(number_fmt = scales::comma,
                              data = enroll_heat_week,
                              fill_color = wes_cols,text_color = "black",
@@ -372,6 +422,7 @@ tbl<-reactable(enroll_heat_week,
 # ticker HTML
 ticker <- HTML(paste0('
 <div class="ticker-wrap">
+<div class="ticker-label">Enrollments since last week:</div>
   <div class="ticker">
     <div class="ticker-move">
       ', ticker_items, ' ', ticker_items, '
