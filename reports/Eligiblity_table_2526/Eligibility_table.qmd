@@ -3,7 +3,7 @@ title: "Table last updated: `r format(Sys.Date(), '%B %d, %Y')`"
 output-dir: ../../docs/
 format:
   html:
-    self-contained: true
+    self-contained: false
     toc: false
     page-layout: custom
     css: styles.css
@@ -544,7 +544,7 @@ tbl <- reactable(
       defaultSortOrder = "desc",
       elementId = "school_nested-table",
       theme = slate_change(centered = TRUE, header_font_size = 18,
-                           backcolor = "#49515a", font_size = 18),
+                           backcolor = "#49515a",borderColor2 = "#49515a", font_size = 18),
       wrap = TRUE,
       detail_data,
       fullWidth = TRUE,
