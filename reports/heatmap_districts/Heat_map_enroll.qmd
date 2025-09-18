@@ -165,7 +165,7 @@ file_objectlist <- get_latest_rds("reactable_element", return_name = TRUE)
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
 #extract columns for most recent weeks
-recent_weeks<-enroll_heat_week[,c(1,ncol(enroll_heat_week)-1, ncol(enroll_heat_week)-2)]
+recent_weeks<-enroll_heat_week[,c(1,ncol(enroll_heat_week)-2, ncol(enroll_heat_week)-1)]
 
 # compute raw and percent diffs
 recent_weeks$raw_diff  <- recent_weeks[[3]] - recent_weeks[[2]]
