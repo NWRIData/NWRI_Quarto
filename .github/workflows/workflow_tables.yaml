@@ -153,4 +153,5 @@ jobs:
           git fetch origin
           git add -A
           git commit -m "Pipeline update $(date -u +'%Y-%m-%d') [skip ci]" || echo "No changes to commit"
-          git push
+          git pull --rebase origin main
+          git push origin HEAD:main
