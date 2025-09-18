@@ -171,9 +171,13 @@ recent_weeks<-enroll_heat_week[,c(1,ncol(enroll_heat_week)-2, ncol(enroll_heat_w
 recent_weeks$raw_diff  <- recent_weeks[[3]] - recent_weeks[[2]]
 recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks[[2]], 1)
 
-recent_weeks<-recent_weeks %>%
-  mutate(perc_diff = ifelse(raw_diff == 0 , 0,perc_diff),
-         perc_diff = ifelse(is.infinite(perc_diff), NA, perc_diff))
+recent_weeks$perc_diff <- ifelse(recent_weeks$raw_diff == 0, 
+                                 0, 
+                                 recent_weeks$perc_diff)
+
+recent_weeks$perc_diff <- ifelse(is.infinite(recent_weeks$perc_diff), 
+                                 NA, 
+                                 recent_weeks$perc_diff)
 
 recent_weeks <- data.frame(
   ticker    = recent_weeks$DISTRICT_NAME,
