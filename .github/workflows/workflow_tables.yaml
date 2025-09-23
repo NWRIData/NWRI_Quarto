@@ -89,6 +89,7 @@ jobs:
         run: |
           latest_data=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds | head -n 1)
           latest_weekly=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds | head -n 1)
+          latest_weekly=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/*.rds | head -n 1)
           latest_coldef=$(ls -1t reports/heatmap_districts/reactable_element/*.rds | head -n 1)
           echo "Uploading $latest_data, $latest_weekly, $latest_coldef"
           echo "latest_data=$latest_data" >> $GITHUB_ENV
