@@ -15,6 +15,7 @@ execute:
   freeze: false
 ---
 
+```{=html}
 <style>
 /* --- Wrapper bar --- */
 .ticker-wrap { 
@@ -56,7 +57,7 @@ execute:
 .ticker-move { 
   display: flex; 
   flex-shrink: 0; 
-  animation: ticker-move 120s linear infinite;
+  animation: ticker-move 220s linear infinite;
 }
 
 /* --- Ticker items --- */
@@ -73,8 +74,8 @@ execute:
 }
 
 /* Colors */
-.item.pos  { color: #4CFF4C; }
-.item.neg  { color: #FF6B6B; }
+.item.pos { color: #4CFF4C; }
+.item.neg { color: #fcba03; }
 .item.zero { color: #CCCCCC; }
 
 /* --- Animation --- */
@@ -83,6 +84,7 @@ execute:
   to   { transform: translateX(-50%); } 
 }
 </style>
+```
 
 ```{r setup, include=FALSE}
 #load libraries
@@ -139,14 +141,11 @@ file_objectlist <- get_latest_rds("reactable_element", return_name = TRUE)
 
 ```
 
-<div class="title-wrap">
-  Enrollment &amp; Eligibility across Florida Schools 
-  <img src="images/NWRI_Logo_blue_orange.png" 
-       alt="New Worlds Reading" width="225" height="125">
-  <img src="images/LCLearning_Primary RGB.png" 
-       alt="LCLearning" width="350" height="100">
-</div>
+::: title-wrap
+Enrollment & Eligibility across Florida Schools <img src="images/NWRI_Logo_blue_orange.png" alt="New Worlds Reading" width="225" height="125"/> <img src="images/LCLearning_Primary RGB.png" alt="LCLearning" width="350" height="100"/>
+:::
 
+```{=html}
 <style>
 .title-wrap {
   width: 100%;
@@ -161,45 +160,54 @@ file_objectlist <- get_latest_rds("reactable_element", return_name = TRUE)
   margin-left: 1rem;
 }
 </style>
+```
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
-#extract columns for most recent weeks
-recent_weeks<-enroll_heat_week[,c(1,ncol(enroll_heat_week)-2, ncol(enroll_heat_week)-1)]
+# extract columns for most recent weeks
+recent_weeks <- enroll_heat_week[, c(1, ncol(enroll_heat_week)-2, ncol(enroll_heat_week)-1)]
 
-# compute raw and percent diffs
-recent_weeks$raw_diff  <- recent_weeks[[3]] - recent_weeks[[2]]
-recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks[[2]], 1)
+# rename for clarity
+names(recent_weeks)[2:3] <- c("last_week", "this_week")
 
-recent_weeks$perc_diff <- ifelse(recent_weeks$raw_diff == 0, 
-                                 0, 
-                                 recent_weeks$perc_diff)
+# compute raw + percent diffs
+recent_weeks$raw_diff  <- recent_weeks$this_week - recent_weeks$last_week
+recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks$last_week, 1)
 
-recent_weeks$perc_diff <- ifelse(is.infinite(recent_weeks$perc_diff), 
-                                 NA, 
-                                 recent_weeks$perc_diff)
+# handle special cases
+recent_weeks$perc_diff <- ifelse(recent_weeks$raw_diff == 0, 0, recent_weeks$perc_diff)
+recent_weeks$perc_diff <- ifelse(is.infinite(recent_weeks$perc_diff), NA, recent_weeks$perc_diff)
 
 recent_weeks <- data.frame(
-  ticker    = recent_weeks$DISTRICT_NAME,
-  raw_diff  = recent_weeks$raw_diff,
-  perc_diff = recent_weeks$perc_diff
+  ticker     = recent_weeks$DISTRICT_NAME,
+  last_week  = recent_weeks$last_week,
+  this_week  = recent_weeks$this_week,
+  raw_diff   = recent_weeks$raw_diff,
+  perc_diff  = recent_weeks$perc_diff
 )
 
 recent_weeks <- recent_weeks |> drop_na(perc_diff)
 
-# format with signs and build ticker items
+# add arrows + descriptive phrasing
+recent_weeks$change_text <- ifelse(
+  recent_weeks$raw_diff > 0,
+  paste0("↑ ", recent_weeks$this_week, " enrollments (", recent_weeks$last_week, " last week)"),
+  ifelse(
+    recent_weeks$raw_diff < 0,
+    paste0("↓ ", recent_weeks$this_week, " enrollments (", recent_weeks$last_week, " last week)"),
+    paste0("→ ", recent_weeks$this_week, " enrollments (same as last week)")
+  )
+)
+
+# build ticker items
 ticker_items <- paste0(
   "<div class='item ",
-  ifelse(recent_weeks$perc_diff > 0, "pos",
-         ifelse(recent_weeks$perc_diff < 0, "neg", "zero")),
+  ifelse(recent_weeks$raw_diff > 0, "pos",
+         ifelse(recent_weeks$raw_diff < 0, "neg", "zero")),
   "'>",
-  recent_weeks$ticker, " ",
-  ifelse(recent_weeks$perc_diff > 0, "+", 
-         ifelse(recent_weeks$perc_diff < 0, "", "")), # add + sign only for positives
-  recent_weeks$perc_diff, "% (",
-  ifelse(recent_weeks$raw_diff > 0, "+", 
-         ifelse(recent_weeks$raw_diff < 0, "", "")),
-  recent_weeks$raw_diff, ")</div>",
+  recent_weeks$ticker, ": ",
+  recent_weeks$change_text,
+  "</div>",
   collapse = ""
 )
 
@@ -310,6 +318,7 @@ tagList(
 ```
 
 ## Weekly Enrollment
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
   function(values, name) {
@@ -447,8 +456,6 @@ tagList(
 )
 
 ```
-
-
 
 ## Build Info
 
