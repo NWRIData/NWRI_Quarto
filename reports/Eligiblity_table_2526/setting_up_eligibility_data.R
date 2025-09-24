@@ -1,6 +1,8 @@
 require(dplyr)
 require(here)
 require(stringr)
+library(lubridate)
+
 
 #establish date of the system for file labelling
 date<-Sys.Date()
@@ -44,6 +46,8 @@ writeLines(latest_file, last_processed_path)
 # Print it
 print(latest_file)
 nwri_enrolled <- read.csv(latest_file, na.strings = c("NA", ""))
+dataapp <- read.csv(latest_file, na.strings = c("NA", ""))
+
 cat("Reading file from:", latest_file, "\n")
 
 
@@ -103,4 +107,47 @@ df %>%
          perc_eligible = n_eligible/n_total)
 
 saveRDS(df, file =here("reports","Eligiblity_table_2526", "data",paste0("final_table",date,".rds")))
+
+
+###setting up heat map for eligiblity table
+
+enroll_heat_week<-dataapp %>%
+  drop_na(AdmissionDate) %>%
+  drop_na(DistrictID) %>%
+  filter(AdmissionDate > "2025-06-22") %>%
+  mutate(
+    EnrollmentDate = as.Date(EnrollmentDate),
+    AdmissionDate = as.Date(AdmissionDate),
+    appdate_week = floor_date(EnrollmentDate, unit = "week"),
+    enrolldate_week = floor_date(AdmissionDate, unit = "week")
+  ) %>%
+  # weekly labels instead of monthly
+  mutate(
+    app_week_label = format(appdate_week, "%Y-%m-%d"),
+    enroll_week_label = format(enrolldate_week, "%Y-%m-%d")
+  ) %>%
+  left_join(
+    MSID %>% select(DISTRICT, SCHOOL, DISTRICT_NAME, SCHOOL_NAME_LONG),
+    by = c("DistrictID" = "DISTRICT", "SchoolID" = "SCHOOL")
+  ) %>%
+  group_by(DISTRICT_NAME, enroll_week_label) %>%
+  count() %>%
+  ungroup() %>%
+  complete(DISTRICT_NAME, enroll_week_label, fill = list(n = 0)) %>%
+  pivot_wider(names_from = "enroll_week_label", values_from = "n") %>%
+  ungroup() %>%
+  mutate(total = rowSums(across(where(is.numeric)))) %>%
+  drop_na(DISTRICT_NAME)
+
+
+enroll_heat_week1 <- enroll_heat_week %>%
+  rename_with(
+    ~ ifelse(.x %in% c("DISTRICT_NAME", "total"), .x, format(as.Date(.x), "%m-%d")),
+    .cols = -DISTRICT_NAME
+  ) 
+
+
+
+saveRDS(enroll_heat_week1, file =here("reports","Eligiblity_table_2526", "heatmapdataweekly",paste0("heat_mapweekly",date,".rds")))
+
 

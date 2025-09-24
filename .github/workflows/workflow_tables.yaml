@@ -45,30 +45,50 @@ jobs:
           name: dropbox-heatmap
           path: ${{ env.latest_file }}
 
+
   # ---- Job 2: R Data Processing ----
   process-eligibility:
-    runs-on: ubuntu-latest
-    needs: download
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: dropbox-eligibility
-          path: reports/Eligiblity_table_2526/dropbox_data/
-      - uses: r-lib/actions/setup-r@v2
-      - name: Install R packages
-        run: Rscript -e 'install.packages(c("dplyr","here","stringr"), repos="https://cloud.r-project.org")'
-      - name: Run eligibility processing
-        run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
-      - name: Upload latest eligibility output
-        run: |
-          latest_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
-          echo "Uploading $latest_file"
-          echo "latest_file=$latest_file" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v4
-        with:
-          name: eligibility-data
-          path: ${{ env.latest_file }}
+  runs-on: ubuntu-latest
+  needs: download
+  steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: dropbox-eligibility
+        path: reports/Eligiblity_table_2526/dropbox_data/
+
+    - uses: r-lib/actions/setup-r@v2
+
+    - name: Install R packages
+      run: Rscript -e 'install.packages(c("dplyr","here","stringr"), repos="https://cloud.r-project.org")'
+
+    - name: Run eligibility processing
+      run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
+
+    # Capture latest final_table
+    - name: Find latest eligibility table
+      run: |
+        table_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
+        echo "table_file=$table_file" >> $GITHUB_ENV
+
+    # Capture latest heatmap file
+    - name: Find latest heatmap file
+      run: |
+        heatmap_file=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/heat_mapweekly*.rds | head -n 1)
+        echo "heatmap_file=$heatmap_file" >> $GITHUB_ENV
+
+    # Upload eligibility table
+    - uses: actions/upload-artifact@v4
+      with:
+        name: eligibility-data
+        path: ${{ env.table_file }}
+
+    # Upload heatmap data
+    - uses: actions/upload-artifact@v4
+      with:
+        name: heatmap-data
+        path: ${{ env.heatmap_file }}
 
   # ---- Job 3: Heatmap Processing ----
   process-heatmap:
@@ -89,12 +109,10 @@ jobs:
         run: |
           latest_data=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds | head -n 1)
           latest_weekly=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds | head -n 1)
-          latest_elig_heat=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/*.rds | head -n 1)
           latest_coldef=$(ls -1t reports/heatmap_districts/reactable_element/*.rds | head -n 1)
-          echo "Uploading $latest_data, $latest_weekly,$latest_elig_heat, $latest_coldef"
+          echo "Uploading $latest_data, $latest_weekly, $latest_coldef"
           echo "latest_data=$latest_data" >> $GITHUB_ENV
           echo "latest_weekly=$latest_weekly" >> $GITHUB_ENV
-          echo "latest_elig_heat=$latest_elig_heat" >> $GITHUB_ENV
           echo "latest_coldef=$latest_coldef" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v4
         with:
@@ -102,7 +120,6 @@ jobs:
           path: |
             ${{ env.latest_data }}
             ${{ env.latest_weekly }}
-            ${{ env.latest_elig_heat}}
             ${{ env.latest_coldef }}
 
   # ---- Job 4: Render Quarto + Final Commit ----
