@@ -1,22 +1,26 @@
-#load libraries
+# Load libraries
 library(lubridate)
 library(dplyr)
 library(tidyr)
 library(here)
 require(reactable)
 
+# Establish date of the system for file labelling
+date <- Sys.Date()
 
-#establish date of the system for file labelling
-date<-Sys.Date()
-#getting data ready for the table
+# Path to "last processed" record
+last_processed_path <- here("reports", "heatmap_districts", "dropbox_data", "last_processed.txt")
 
-last_processed_path <- here("reports","heatmap_districts", "dropbox_data","last_processed.txt")
+# Read last processed filename if it exists
+last_processed <- if (file.exists(last_processed_path)) {
+  trimws(readLines(last_processed_path, warn = FALSE))
+} else {
+  NA_character_
+}
+cat("Last processed file recorded:", last_processed, "\n")
 
-
-#load most recent data
-
-# Specify the directory
-dir_path <- here("reports","heatmap_districts", "dropbox_data")
+# Specify the directory and list files
+dir_path <- here("reports", "heatmap_districts", "dropbox_data")
 files <- list.files(
   dir_path,
   pattern = "enrollments_\\d{8}\\.csv",
@@ -26,20 +30,11 @@ files <- list.files(
 # Extract dates from filenames
 dates <- as.Date(gsub(".*_(\\d{8})\\.csv", "\\1", files), format = "%Y%m%d")
 
-# Get the most recent based on the date in the filename
+# Get the most recent file
 latest_file <- files[which.max(dates)]
 latest_file_base <- basename(latest_file)
 
-
 cat("Latest file based on filename date:", latest_file_base, "\n")
-
-# Read last processed filename if exists
-last_processed <- if (file.exists(last_processed_path)) {
-  trimws(readLines(last_processed_path, warn = FALSE))
-} else {
-  NA_character_
-}
-
 
 # If latest file is same as last processed, skip processing
 if (!is.na(last_processed) && latest_file_base == last_processed) {
@@ -47,17 +42,15 @@ if (!is.na(last_processed) && latest_file_base == last_processed) {
   quit(save = "no")  # Exit the script early
 }
 
-cat("writing new last processed path with this:",latest_file)
-
-
-# Otherwise, update last processed record
-cat("Writing new last processed filename:", latest_file_base, "\n")
+# Otherwise, update last processed record (store only basename)
+cat("Updating last processed file to:", latest_file_base, "\n")
 writeLines(latest_file_base, last_processed_path)
 
-# Continue with processing
-print(latest_file)
+# Continue with processing (read full path)
+cat("Reading data from:", latest_file, "\n")
 dataapp <- read.csv(latest_file, na.strings = c("NA", ""))
-cat("Reading file from:", latest_file, "\n")
+
+
 
 MSID<-readRDS("reports/heatmap_districts/data/MSID_08112025.rds")
 cat("Reading file from:", "reports/heatmap_districts/data/MSID_08112025.rds", "\n")
