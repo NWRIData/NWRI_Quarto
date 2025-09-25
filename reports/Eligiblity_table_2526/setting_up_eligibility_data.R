@@ -17,6 +17,12 @@ last_processed <- if (file.exists(last_processed_path)) {
 } else {
   NA_character_
 }
+
+# If the old last_processed contains a full path, convert to basename
+if (!is.na(last_processed)) {
+  last_processed <- basename(last_processed)
+}
+
 cat("Last processed file recorded:", last_processed, "\n")
 
 # Specify the directory and list files
@@ -36,7 +42,7 @@ latest_file_base <- basename(latest_file)
 
 cat("Latest file based on filename date:", latest_file_base, "\n")
 
-# If latest file is same as last processed, skip processing
+# Skip processing if already processed
 if (!is.na(last_processed) && latest_file_base == last_processed) {
   cat("No new data file found. Skipping processing.\n")
   quit(save = "no")  # Exit the script early
