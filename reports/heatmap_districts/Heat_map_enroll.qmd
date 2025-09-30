@@ -57,7 +57,7 @@ execute:
 .ticker-move { 
   display: flex; 
   flex-shrink: 0; 
-  animation: ticker-move 220s linear infinite;
+  animation: ticker-move 100s linear infinite;
 }
 
 /* --- Ticker items --- */
