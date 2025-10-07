@@ -56,11 +56,12 @@ writeLines(latest_file_base, last_processed_path)
 cat("Reading data from:", latest_file, "\n")
 nwri_enrolled <- read.csv(latest_file, na.strings = c("NA", ""))
 dataapp <- read.csv(latest_file, na.strings = c("NA", ""))
+dataapp |>
+  filter(DistrictName == "Hillsborough")
 
-
-nwri_all<-readRDS("reports/Eligiblity_table_2526/base_data/nwri_all_table_08112025.rds")
-nwri_eligible<-readRDS("reports/Eligiblity_table_2526/base_data/nwri_eligible_table_08112025.rds")
-MSID<-readRDS("reports/Eligiblity_table_2526/base_data/MSID_08112025.rds")
+nwri_all<-readRDS("reports/Eligiblity_table_2526/base_data/nwri_all_table_10072025.rds")
+nwri_eligible<-readRDS("reports/Eligiblity_table_2526/base_data/nwri_eligible_table_10072025.rds")
+MSID<-readRDS("reports/Eligiblity_table_2526/base_data/MSID_10072025.rds")
 
 #run the code below if you want to remove the unmatched people
 
@@ -105,13 +106,6 @@ df<-all_students %>%
     by = c("district" = "DISTRICT", "school" = "SCHOOL")
   )
 
-df %>%
-  filter(SCHOOL_NAME_LONG == "NEWBERRY ELEMENTARY SCHOOL") %>%
-  mutate(n_enrolled = ifelse(is.na(n_enrolled), 0, n_enrolled),
-         n_eligible = ifelse(is.na(n_eligible), 0, n_eligible))  %>%
-  filter(!is.na(n_total)) %>%
-  mutate(perc_enroll = n_enrolled/n_total,
-         perc_eligible = n_eligible/n_total)
 
 saveRDS(df, file =here("reports","Eligiblity_table_2526", "data",paste0("final_table",date,".rds")))
 

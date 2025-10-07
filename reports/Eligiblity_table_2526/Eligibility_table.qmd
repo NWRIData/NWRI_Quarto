@@ -56,7 +56,7 @@ execute:
 .ticker-move { 
   display: flex; 
   flex-shrink: 0; 
-  animation: ticker-move 120s linear infinite;
+  animation: ticker-move 140s linear infinite;
 }
 
 /* --- Ticker items --- */
@@ -152,8 +152,11 @@ orangefilter = Gradeleveltabs |>
 
 school_summary2 <- Gradeleveltabs |>
   group_by(DistrictID, SchoolID,DISTRICT_NAME, SCHOOL_NAME_LONG) |>
-  summarize(avg_perc_eligible = mean(perc_eligible), total_n_eligible = sum(n_eligible),
-            avg_perc_enroll = mean(perc_enroll), total_n_enroll = sum(n_enrolled),
+  summarize(
+            total_n_eligible = sum(n_eligible),
+            total_n_enroll = sum(n_enrolled),
+            avg_perc_eligible = mean(perc_eligible), 
+            avg_perc_enroll = mean(perc_enroll), 
             .groups = "drop") |>
   mutate(priorit_col = case_when(
     avg_perc_enroll <  mean(orangefilter$perc_enroll, na.rm = T) &
@@ -171,6 +174,20 @@ district_level<-school_summary2 |>
             avg_eligiblity = mean(avg_perc_eligible),
              avg_enroll = mean(avg_perc_enroll)) |>
   drop_na(DISTRICT_NAME)
+
+
+#calculate enrollment and elibility percentages using totals rather then
+#. averaging across schools per district 
+district_level<-Gradeleveltabs |>
+   group_by(DISTRICT_NAME) |>
+   summarise(total_eligible_d= sum(n_eligible),
+            total_enroll_d = sum(n_enrolled),
+            total_district_pop = sum(n_total)) |>
+  mutate(avg_eligiblity = total_eligible_d/total_district_pop, 
+         avg_enroll = total_enroll_d/total_eligible_d) %>%
+   drop_na(DISTRICT_NAME) %>%
+  select(-c(total_enroll_d,total_district_pop))
+             
 
 
 ```
@@ -232,12 +249,6 @@ ticker_items <- paste0(
 ```
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
-district_level<-school_summary2 |>
-  group_by(DISTRICT_NAME) |>
-  summarise(total_eligible_d= sum(total_n_eligible),
-            avg_eligiblity = mean(avg_perc_eligible),
-             avg_enroll = mean(avg_perc_enroll)) |>
-  drop_na(DISTRICT_NAME)
 
 font_size = 15
 font_color = "#aaaaaa"
