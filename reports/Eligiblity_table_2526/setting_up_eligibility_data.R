@@ -56,8 +56,7 @@ writeLines(latest_file_base, last_processed_path)
 cat("Reading data from:", latest_file, "\n")
 nwri_enrolled <- read.csv(latest_file, na.strings = c("NA", ""))
 dataapp <- read.csv(latest_file, na.strings = c("NA", ""))
-dataapp |>
-  filter(DistrictName == "Hillsborough")
+
 
 nwri_all<-readRDS("reports/Eligiblity_table_2526/base_data/nwri_all_table_10072025.rds")
 nwri_eligible<-readRDS("reports/Eligiblity_table_2526/base_data/nwri_eligible_table_10072025.rds")
@@ -65,10 +64,13 @@ MSID<-readRDS("reports/Eligiblity_table_2526/base_data/MSID_10072025.rds")
 
 #run the code below if you want to remove the unmatched people
 
-
 #get rid of double spaces
 nwri_enrolled <- nwri_enrolled %>%
   mutate(across(where(is.character), str_squish)) 
+
+#save the kids that are not fully matched (ie. the "lost" kids)
+lost_kids<-nwri_enrolled %>%
+  filter(is.na(MappedDOESchool))
 
 nwri_eligible <-nwri_eligible %>%
   mutate(across(where(is.character), str_squish)) %>%
@@ -84,7 +86,7 @@ enrolled_students <- nwri_enrolled %>%
   summarise(n_enrolled =  n()) %>%
   ungroup() 
 
-
+#here we remove Pre-K numbers
 eligible_students<-nwri_eligible %>%
   filter(!grade == "P") %>%
   group_by(district,school, grade) %>%
