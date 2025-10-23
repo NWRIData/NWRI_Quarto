@@ -74,7 +74,7 @@ jobs:
        # Capture latest nonmatched file
       - name: Find latest nonmatch table
         run: |
-          table_file=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds | head -n 1)
+          nonmatchfile=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds | head -n 1)
           echo "nonmatchfile=$nonmatchfile" >> $GITHUB_ENV
 
       # Capture latest heatmap file
