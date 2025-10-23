@@ -70,6 +70,12 @@ jobs:
         run: |
           table_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
           echo "table_file=$table_file" >> $GITHUB_ENV
+          
+       # Capture latest nonmatched file
+      - name: Find latest nonmatch table
+        run: |
+          table_file=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds | head -n 1)
+          echo "nonmatchfile=nonmatchfile" >> $GITHUB_ENV
 
       # Capture latest heatmap file
       - name: Find latest heatmap file
@@ -82,6 +88,12 @@ jobs:
         with:
           name: eligibility-data
           path: ${{ env.table_file }}
+          
+      # Upload nonmatch table
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nonmatch-data
+          path: ${{ env.nonmatchfile }}
 
       # Upload heatmap data
       - uses: actions/upload-artifact@v4
