@@ -108,8 +108,19 @@ Enrollment_heat <- Enrollment_heat %>%
 
 saveRDS(Enrollment_heat, file =here("reports","heatmap_districts", "heatmapdata",paste0("heat_map",date,".rds")))
 
+#get current day
+# generate full sequence of weekly labels from min week to current week
+full_weeks <- seq(
+  from = floor_date(as.Date("2025-06-22"), unit = "week"),
+  to   = floor_date(Sys.Date(), unit = "week"),
+  by = "week"
+) %>%
+  format("%Y-%m-%d")
 
-enroll_heat_week<-dataapp %>%
+
+
+
+enroll_heat_week <- dataapp %>%
   drop_na(AdmissionDate) %>%
   drop_na(DistrictID) %>%
   filter(AdmissionDate > "2025-06-22") %>%
@@ -119,7 +130,6 @@ enroll_heat_week<-dataapp %>%
     appdate_week = floor_date(EnrollmentDate, unit = "week"),
     enrolldate_week = floor_date(AdmissionDate, unit = "week")
   ) %>%
-  # weekly labels instead of monthly
   mutate(
     app_week_label = format(appdate_week, "%Y-%m-%d"),
     enroll_week_label = format(enrolldate_week, "%Y-%m-%d")
@@ -131,10 +141,9 @@ enroll_heat_week<-dataapp %>%
   group_by(DISTRICT_NAME, enroll_week_label) %>%
   count() %>%
   ungroup() %>%
-  complete(DISTRICT_NAME, enroll_week_label, fill = list(n = 0)) %>%
+  complete(DISTRICT_NAME, enroll_week_label = full_weeks, fill = list(n = 0)) %>%
   pivot_wider(names_from = "enroll_week_label", values_from = "n") %>%
-  ungroup() %>%
-  mutate(total = rowSums(across(where(is.numeric)))) %>%
+  mutate(total = rowSums(across(where(is.numeric)), na.rm = TRUE)) %>%
   drop_na(DISTRICT_NAME)
 
 
