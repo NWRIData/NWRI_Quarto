@@ -142,7 +142,7 @@ file_objectlist <- get_latest_rds("reactable_element", return_name = TRUE)
 ```
 
 ::: title-wrap
-Enrollment & Eligibility across Florida Schools <img src="images/NWRI_Logo_blue_orange.png" alt="New Worlds Reading" width="225" height="125"/> <img src="images/LCLearning_Primary RGB.png" alt="LCLearning" width="350" height="100"/>
+Enrollment & Eligibility Across Florida Schools <img src="images/NWRI_Logo_blue_orange.png" alt="New Worlds Reading" width="225" height="125"/> <img src="images/LCLearning_Primary RGB.png" alt="LCLearning" width="350" height="100"/>
 :::
 
 ```{=html}
@@ -163,16 +163,15 @@ Enrollment & Eligibility across Florida Schools <img src="images/NWRI_Logo_blue_
 ```
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
-
 # extract columns for most recent weeks
-recent_weeks <- enroll_heat_week[, c(1, ncol(enroll_heat_week)-2, ncol(enroll_heat_week)-1)]
+recent_weeks <- enroll_heat_week[, c(1, ncol(enroll_heat_week)-3, ncol(enroll_heat_week)-2)]
 
 # rename for clarity
-names(recent_weeks)[2:3] <- c("last_week", "this_week")
+names(recent_weeks)[2:3] <- c("two_weeks", "last_week")
 
 # compute raw + percent diffs
-recent_weeks$raw_diff  <- recent_weeks$this_week - recent_weeks$last_week
-recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks$last_week, 1)
+recent_weeks$raw_diff  <- recent_weeks$last_week - recent_weeks$two_weeks
+recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks$two_weeks, 1)
 
 # handle special cases
 recent_weeks$perc_diff <- ifelse(recent_weeks$raw_diff == 0, 0, recent_weeks$perc_diff)
@@ -180,8 +179,8 @@ recent_weeks$perc_diff <- ifelse(is.infinite(recent_weeks$perc_diff), NA, recent
 
 recent_weeks <- data.frame(
   ticker     = recent_weeks$DISTRICT_NAME,
+  two_week  = recent_weeks$two_weeks,
   last_week  = recent_weeks$last_week,
-  this_week  = recent_weeks$this_week,
   raw_diff   = recent_weeks$raw_diff,
   perc_diff  = recent_weeks$perc_diff
 )
@@ -191,11 +190,11 @@ recent_weeks <- recent_weeks |> drop_na(perc_diff)
 # add arrows + descriptive phrasing
 recent_weeks$change_text <- ifelse(
   recent_weeks$raw_diff > 0,
-  paste0("↑ ", recent_weeks$this_week, " enrollments (", recent_weeks$last_week, " last week)"),
+  paste0("↑ ", recent_weeks$last_week, " enrollments (", recent_weeks$two_week, " two weeks ago)"),
   ifelse(
     recent_weeks$raw_diff < 0,
-    paste0("↓ ", recent_weeks$this_week, " enrollments (", recent_weeks$last_week, " last week)"),
-    paste0("→ ", recent_weeks$this_week, " enrollments (same as last week)")
+    paste0("↓ ", recent_weeks$last_week, " enrollments (", recent_weeks$two_week, " two weeks ago)"),
+    paste0("→ ", recent_weeks$last_week, " enrollments (same as two weeks ago)")
   )
 )
 
@@ -210,6 +209,7 @@ ticker_items <- paste0(
   "</div>",
   collapse = ""
 )
+
 
 
 ```
@@ -272,7 +272,7 @@ tbl <- reactable(
     total = colDef(
       name = "Annual Total",
       maxWidth = 225,
-      cell = data_bars(
+      cell = data_bars(number_fmt = scales::comma,
         data = Enrollment_heat,
         fill_color = wes_cols, text_color = "black",
         bias = 1.4,
@@ -296,7 +296,7 @@ subtitle <- div(
 # ticker HTML
 ticker <- HTML(paste0('
 <div class="ticker-wrap">
-<div class="ticker-label">Enrollments since last week:</div>
+<div class="ticker-label">Enrollments last two weeks:</div>
   <div class="ticker">
     <div class="ticker-move">
       ', ticker_items, ' ', ticker_items, '
@@ -374,14 +374,14 @@ tbl<-reactable(enroll_heat_week,
           height = "100%",
           bordered = TRUE,
           highlight = TRUE,
-          resizable = TRUE,
+          resizable = FALSE,
           sortable = TRUE,
           pagination = FALSE,
           showSortIcon = FALSE,
           elementId = "districts-table",
           
           defaultColDef = colDef(
-            minWidth = 40,
+            minWidth = 100,
             align = 'center',
             cell = tooltip(),
             style = color_scales(
@@ -399,7 +399,7 @@ tbl<-reactable(enroll_heat_week,
             DISTRICT_NAME = colDef(name = "District",    
                                    sticky = "left",
                                    filterable = T,
-                                   minWidth = 100,
+                                   minWidth = 200,
                                    filterInput = dataListFilter("districts-table"),
                                    filterMethod = JS("
         function(rows, columnId, filterValue) {
@@ -439,7 +439,7 @@ tbl<-reactable(enroll_heat_week,
 # ticker HTML
 ticker <- HTML(paste0('
 <div class="ticker-wrap">
-<div class="ticker-label">Enrollments since last week:</div>
+<div class="ticker-label">Enrollments last two weeks:</div>
   <div class="ticker">
     <div class="ticker-move">
       ', ticker_items, ' ', ticker_items, '
