@@ -3,8 +3,9 @@ project:
   output-dir: docs
 
 website:
-  title: "New Worlds Reading Data Team"
+  title: "<span>Data</span><br><span>Team</span>"
   navbar:
+    logo: reports/Eligiblity_table_2526/images/NWRI_Logo_blue_orange.png    # <-- Add your logo here
     left:
       - href: index.qmd
         text: Home
@@ -19,4 +20,3 @@ format:
   html:
     theme: mintly
     css: styles.css
-

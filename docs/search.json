@@ -53,14 +53,14 @@
     "href": "graphingtrial.html",
     "title": "graphingtrial",
     "section": "",
-    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-09-17 13:13:02 EDT\""
+    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-10-28 11:12:21 EDT\""
   },
   {
     "objectID": "graphingtrial.html#rendered-at",
     "href": "graphingtrial.html#rendered-at",
     "title": "graphingtrial",
     "section": "",
-    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-09-17 13:13:02 EDT\""
+    "text": "format(Sys.time(), tz = \"America/New_York\", usetz = TRUE)\n\n[1] \"2025-10-28 11:12:21 EDT\""
   },
   {
     "objectID": "graphingtrial.html#quarto",

@@ -202,14 +202,14 @@ Schools highlighted in [orange]{style="background-color: orange"} fall under the
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
 # extract columns for most recent weeks
-recent_weeks <- enroll_heat_week[, c(1, ncol(enroll_heat_week)-2, ncol(enroll_heat_week)-1)]
+recent_weeks <- enroll_heat_week[, c(1, ncol(enroll_heat_week)-3, ncol(enroll_heat_week)-2)]
 
 # rename for clarity
-names(recent_weeks)[2:3] <- c("last_week", "this_week")
+names(recent_weeks)[2:3] <- c("two_weeks", "last_week")
 
 # compute raw + percent diffs
-recent_weeks$raw_diff  <- recent_weeks$this_week - recent_weeks$last_week
-recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks$last_week, 1)
+recent_weeks$raw_diff  <- recent_weeks$last_week - recent_weeks$two_weeks
+recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks$two_weeks, 1)
 
 # handle special cases
 recent_weeks$perc_diff <- ifelse(recent_weeks$raw_diff == 0, 0, recent_weeks$perc_diff)
@@ -217,8 +217,8 @@ recent_weeks$perc_diff <- ifelse(is.infinite(recent_weeks$perc_diff), NA, recent
 
 recent_weeks <- data.frame(
   ticker     = recent_weeks$DISTRICT_NAME,
+  two_week  = recent_weeks$two_weeks,
   last_week  = recent_weeks$last_week,
-  this_week  = recent_weeks$this_week,
   raw_diff   = recent_weeks$raw_diff,
   perc_diff  = recent_weeks$perc_diff
 )
@@ -228,11 +228,11 @@ recent_weeks <- recent_weeks |> drop_na(perc_diff)
 # add arrows + descriptive phrasing
 recent_weeks$change_text <- ifelse(
   recent_weeks$raw_diff > 0,
-  paste0("↑ ", recent_weeks$this_week, " enrollments (", recent_weeks$last_week, " last week)"),
+  paste0("↑ ", recent_weeks$last_week, " enrollments (", recent_weeks$two_week, " two weeks ago)"),
   ifelse(
     recent_weeks$raw_diff < 0,
-    paste0("↓ ", recent_weeks$this_week, " enrollments (", recent_weeks$last_week, " last week)"),
-    paste0("→ ", recent_weeks$this_week, " enrollments (same as last week)")
+    paste0("↓ ", recent_weeks$last_week, " enrollments (", recent_weeks$two_week, " two weeks ago)"),
+    paste0("→ ", recent_weeks$last_week, " enrollments (same as two weeks ago)")
   )
 )
 
@@ -432,7 +432,7 @@ tbl <- reactable(
      # enrollment percentage including nonmatched students by district
     nonmatch_added_enroll = colDef(
       align = "center",
-      name = "Enrolled % with nonmatched",
+      name = "Enrolled % (Scholastic version)",
       cell = data_bars(
         data = district_level,
         fill_color = "cyan",
@@ -975,7 +975,7 @@ title <- div(
 # ticker HTML
 ticker <- HTML(paste0('
 <div class="ticker-wrap">
-<div class="ticker-label">Enrollments since last week:</div>
+<div class="ticker-label">Enrollments last two weeks:</div>
   <div class="ticker">
     <div class="ticker-move">
       ', ticker_items, ' ', ticker_items, '
