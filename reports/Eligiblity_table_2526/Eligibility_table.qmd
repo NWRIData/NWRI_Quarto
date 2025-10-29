@@ -199,7 +199,8 @@ left_join(district_level, nonmatch_data |> select(DistrictName, n), by = c("DIST
 
 **Table guide**:
 
-* The "Enrolled % (Scholastic version) calculates the percent of enrolled New Worlds Reading Students (out of all eligible students)
+* The "Enrolled % (Scholastic version)" calculates the percent of enrolled New Worlds Reading Students (out of all eligible students) including non-matched but enrolled students. This percentage should match (or very closely match) the percentage provided in the Scholastic Dashboard
+* The "Enrolled %" calculates the percent of enrolled New Worlds Reading Students without including non-matched students.
 * Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
