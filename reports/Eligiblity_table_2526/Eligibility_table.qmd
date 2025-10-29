@@ -1,5 +1,5 @@
 ---
-title: "Table last updated: `r format(Sys.Date(), '%B %d, %Y')`"
+title: "<span style='font-family:Poppins, sans-serif; font-size:18px; font-style:italic;'>Table last updated: `r format(Sys.Date(), '%B %d, %Y')`</span>"
 output-dir: ../../docs/
 format:
   html:
@@ -56,13 +56,13 @@ execute:
 .ticker-move { 
   display: flex; 
   flex-shrink: 0; 
-  animation: ticker-move 160s linear infinite;
+  animation: ticker-move 180s linear infinite;
 }
 
 /* --- Ticker items --- */
 .item { 
   flex: 0 0 auto; 
-  margin-right: 2rem; 
+  margin-right: 10rem; 
   font-family: monospace; 
   font-size: 1.2em; 
   white-space: nowrap;
@@ -156,8 +156,9 @@ school_summary2 <- Gradeleveltabs |>
   summarize(
             total_n_eligible = sum(n_eligible),
             total_n_enroll = sum(n_enrolled),
-            avg_perc_eligible = mean(perc_eligible), 
-            avg_perc_enroll = mean(perc_enroll), 
+            total_school_pop = sum(n_total),
+            avg_perc_eligible = total_n_eligible/total_school_pop,
+            avg_perc_enroll = total_n_enroll/ total_school_pop,
             .groups = "drop") |>
   mutate(priorit_col = case_when(
     avg_perc_enroll <  mean(orangefilter$perc_enroll, na.rm = T) &
@@ -166,7 +167,8 @@ school_summary2 <- Gradeleveltabs |>
   )) |>
   relocate(avg_perc_eligible, .after =total_n_eligible) |>
   relocate(avg_perc_enroll, .after = avg_perc_eligible) |>
-  mutate('School Type' = priorit_col)  
+  mutate('School Type' = priorit_col)  |>
+  select(-total_school_pop)
 
 
 
@@ -197,7 +199,8 @@ left_join(district_level, nonmatch_data |> select(DistrictName, n), by = c("DIST
 
 **Table guide**:
 
-Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
+* The "Enrolled % (Scholastic version) calculates the percent of enrolled New Worlds Reading Students (out of all eligible students)
+* Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
@@ -228,11 +231,11 @@ recent_weeks <- recent_weeks |> drop_na(perc_diff)
 # add arrows + descriptive phrasing
 recent_weeks$change_text <- ifelse(
   recent_weeks$raw_diff > 0,
-  paste0("↑ ", recent_weeks$last_week, " enrollments (", recent_weeks$two_week, " two weeks ago)"),
+  paste0("↑ Last week: ", recent_weeks$last_week, " enrollments (Two weeks ago: ", recent_weeks$two_week,")"),
   ifelse(
     recent_weeks$raw_diff < 0,
-    paste0("↓ ", recent_weeks$last_week, " enrollments (", recent_weeks$two_week, " two weeks ago)"),
-    paste0("→ ", recent_weeks$last_week, " enrollments (same as two weeks ago)")
+    paste0("↓ Last week: ", recent_weeks$last_week, " enrollments (Two weeks ago: ", recent_weeks$two_week,")"),
+    paste0("→ Last week: ", recent_weeks$last_week, " enrollments (same as two weeks ago)")
   )
 )
 
@@ -324,6 +327,13 @@ dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
   }
 }
 ```
+
+
+```{=html}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+```
+
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #this is the main table
@@ -962,7 +972,7 @@ title <- div(
       <img src='images/NWRI_Logo_blue_orange.png' 
            style='height: calc(40px + 5vh); width: auto;' 
            alt='New Worlds Reading'>
-      <img src='images/LCLearning_Primary RGB.png' 
+      <img src='images/LCLearning_Primary_RGB.png' 
            style='height: calc(40px + 5vh); width: auto;' 
            alt='Learning Logo'>
     ")

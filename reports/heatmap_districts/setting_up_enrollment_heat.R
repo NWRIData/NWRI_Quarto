@@ -164,7 +164,6 @@ enroll_heat_week1 <- enroll_heat_week %>%
     .cols = -DISTRICT_NAME
   ) 
 
-
 objectlist<-list()
 for (i in 1:length(columns_headers$name)) {
   

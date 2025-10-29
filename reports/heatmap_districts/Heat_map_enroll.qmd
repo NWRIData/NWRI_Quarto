@@ -1,5 +1,5 @@
 ---
-title: "District enrollment activity (Last updated: `r format(Sys.time(), '%B %d, %Y %I:%M %p', tz = 'America/New_York')`)"
+title: "<span style='font-family:Poppins, sans-serif; font-size:18px; font-style:italic;'>District enrollment activity (Last updated: `r format(Sys.time(), '%B %d, %Y %I:%M %p', tz = 'America/New_York')`)"
 author: "NWRI D Team"
 output-dir: ../../docs/
 format:
@@ -57,13 +57,13 @@ execute:
 .ticker-move { 
   display: flex; 
   flex-shrink: 0; 
-  animation: ticker-move 160s linear infinite;
+  animation: ticker-move 180s linear infinite;
 }
 
 /* --- Ticker items --- */
 .item { 
   flex: 0 0 auto; 
-  margin-right: 2rem; 
+  margin-right: 10rem; 
   font-family: monospace; 
   font-size: 1.2em; 
   white-space: nowrap;
@@ -146,6 +146,8 @@ Enrollment & Eligibility Across Florida Schools <img src="images/NWRI_Logo_blue_
 :::
 
 ```{=html}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
 <style>
 .title-wrap {
   width: 100%;
@@ -154,6 +156,7 @@ Enrollment & Eligibility Across Florida Schools <img src="images/NWRI_Logo_blue_
   color: black;
   font-size: 1.5em;
   font-weight: bold;
+  font-family: 'Poppins', sans-serif;
 }
 .title-wrap img {
   vertical-align: middle;
@@ -187,16 +190,18 @@ recent_weeks <- data.frame(
 
 recent_weeks <- recent_weeks |> drop_na(perc_diff)
 
+
 # add arrows + descriptive phrasing
 recent_weeks$change_text <- ifelse(
   recent_weeks$raw_diff > 0,
-  paste0("↑ ", recent_weeks$last_week, " enrollments (", recent_weeks$two_week, " two weeks ago)"),
+  paste0("↑ Last week: ", recent_weeks$last_week, " enrollments (Two weeks ago: ", recent_weeks$two_week,")"),
   ifelse(
     recent_weeks$raw_diff < 0,
-    paste0("↓ ", recent_weeks$last_week, " enrollments (", recent_weeks$two_week, " two weeks ago)"),
-    paste0("→ ", recent_weeks$last_week, " enrollments (same as two weeks ago)")
+    paste0("↓ Last week: ", recent_weeks$last_week, " enrollments (Two weeks ago: ", recent_weeks$two_week,")"),
+    paste0("→ Last week: ", recent_weeks$last_week, " enrollments (same as two weeks ago)")
   )
 )
+
 
 # build ticker items
 ticker_items <- paste0(
