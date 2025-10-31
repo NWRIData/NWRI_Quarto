@@ -173,5 +173,12 @@
     "title": "Extra Notes and Details",
     "section": "",
     "text": "Non-matched but enrolled students:\n“Despite using the most accurate matching rules identified in our experiments, false matches are still possible due to the flexibility of the matching process. It is also possible that a future new applicant comes along that is a better match to a DOE record already matched to another applicant using a more flexible rule. In this case, the less accurate match is assigned “NM” to its mapped FLEID while the better match is assigned “EL” to its eligibility status and gets the FLEID number associated with that DOE record. They both remain enrolled in New Worlds Reading, meaning that the less accurate match is grandfathered in. For these grandfathered in enrollments, it is not possible to match them to a DOE educational record, therefore we are unable to retrieve variables included in the educational records for them, such as demographic information, English Language Learner status, presence of disabilities, etc.”"
+  },
+  {
+    "objectID": "reports/Eligiblity_table_2526/Eligibility_table.html",
+    "href": "reports/Eligiblity_table_2526/Eligibility_table.html",
+    "title": "<span>Data</span><br><span>Team</span>",
+    "section": "",
+    "text": "&lt;!DOCTYPE html&gt;\n\n\n\n\nMinimal Ticker\n\n\n\n\n\n\n&lt;span class=\"ticker-item\"&gt;Item 1&lt;/span&gt;\n&lt;span class=\"ticker-item\"&gt;Item 2&lt;/span&gt;\n&lt;span class=\"ticker-item\"&gt;Item 3&lt;/span&gt;\n&lt;span class=\"ticker-item\"&gt;Item 4&lt;/span&gt;"
   }
 ]
