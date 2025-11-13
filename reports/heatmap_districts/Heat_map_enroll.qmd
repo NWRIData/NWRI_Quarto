@@ -15,6 +15,16 @@ execute:
   freeze: false
 ---
 
+
+```{=html}
+<script>
+  const password = prompt("Enter password");
+  if (password !== "NWRI") {
+    document.body.innerHTML = "Access denied";
+  }
+</script>
+```
+
 ```{=html}
 <style>
 /* --- Wrapper bar --- */
