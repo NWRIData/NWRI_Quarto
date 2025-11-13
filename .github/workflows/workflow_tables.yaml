@@ -45,7 +45,7 @@ jobs:
           name: dropbox-heatmap
           path: ${{ env.latest_file }}
 
-  # ---- Job 2: R Data  Processing ----
+  # ---- Job 2: R Data Processing ----
   process-eligibility:
     runs-on: ubuntu-latest
     needs: download
@@ -71,7 +71,7 @@ jobs:
           table_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
           echo "table_file=$table_file" >> $GITHUB_ENV
           
-       # Capture latest nonmatched file
+      # Capture latest nonmatched file
       - name: Find latest nonmatch table
         run: |
           nonmatchfile=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds | head -n 1)
@@ -181,12 +181,14 @@ jobs:
         run: |
           quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
           quarto render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
-      - name: Commit all changes
+
+      # ---- CHANGE MADE HERE ----
+      - name: Commit and push generated HTML (force push)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin
-          git add -A
+          git checkout main
+          git add docs/
           git commit -m "Pipeline update $(date -u +'%Y-%m-%d') [skip ci]" || echo "No changes to commit"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git push origin main --force
+      # ---- END CHANGE ----
