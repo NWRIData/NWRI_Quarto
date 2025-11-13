@@ -3,15 +3,6 @@ title: "New Worlds Reading Initiative Data Team"
 format: html
 ---
 
-```{=html}
-<script>
-  const password = prompt("Enter password");
-  if (password !== "NWRI") {
-    document.body.innerHTML = "Access denied";
-  }
-</script>
-```
-
 # Welcome 👋
 
 This is the landing page for our data products.

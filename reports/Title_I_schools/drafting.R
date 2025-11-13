@@ -66,6 +66,7 @@ lookup<-lookup %>%
   mutate(VPK = ifelse(str_detect(GradeCombination, "PK"), "TRUE", "FALSE")) |>
   rename(GRADE_CODE = GradeCode)
 left_join(joined, lookup, by = "GRADE_CODE") %>%
-  count(VPK)
+  count(GradeCombination) %>%
+  arrange(desc(n))
 
 
