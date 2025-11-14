@@ -1,0 +1,104 @@
+---
+title: "<span style='font-family:Poppins, sans-serif; font-size:18px; font-style:italic;'>Enrollment activity (Last updated: `r format(Sys.time(), '%B %d, %Y %I:%M %p', tz = 'America/New_York')`)"
+author: "NWRI D Team"
+output-dir: ../../docs/
+format:
+  html:
+    self-contained: true
+    toc: false
+    page-layout: custom
+    css: styles.css
+editor: visual
+execute:
+  echo: false
+  cache: false
+  freeze: false
+---
+
+```{=html}
+<script>
+  const password = prompt("Enter password");
+  if (password !== "NWRI") {
+    document.body.innerHTML = "Access denied";
+  }
+</script>
+```
+
+```{r setup, include=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
+# Function to get latest RDS based on filename date
+get_latest_rds <- function(dir_path, verbose = TRUE) {
+  rds_files <- list.files(path = dir_path, pattern = "\\.rds$", full.names = TRUE)
+  
+  if (length(rds_files) == 0) {
+    if (verbose) cat("No .rds files found in", dir_path, "\n")
+    return(NULL)
+  }
+  
+  file_dates <- sub(".*?(\\d{4}-\\d{2}-\\d{1,2})\\.rds$", "\\1", basename(rds_files))
+  file_dates <- as.Date(file_dates, format = "%Y-%m-%d")
+  
+  latest_file <- rds_files[which.max(file_dates)]
+  
+  if (verbose) cat("Loaded file from:", latest_file, "\n")
+  readRDS(latest_file)
+}
+
+
+total_data<-get_latest_rds("data/total_data")
+diff_total<-get_latest_rds("data/diff_total")
+```
+
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
+d = total_data
+base_plot <- ggplot(data = NULL) +
+      geom_rect(aes(xmin = 8,xmax = 14, ymin = -Inf, ymax = Inf),
+                fill = "grey", alpha = 0.2) +
+      annotate("text", x = 11, y = 400000, label = "PM1", size = 9) +
+      geom_rect(aes(xmin = 25,xmax = 31, ymin = -Inf, ymax = Inf),
+                fill = "grey", alpha = 0.2) +
+      annotate("text", x = 28, y = 400000, label = "PM2", size = 9) +
+      geom_rect(aes(xmin = 44,xmax = 49, ymin = -Inf, ymax = Inf),
+                fill = "grey", alpha = 0.2) +
+      annotate("text", x = 46.5, y = 400000, label = "PM3", size = 9) +
+      geom_line(data = d,
+                aes(x = week_of_cycle, y = cumulative_n_includingold,
+                    color = Year), linewidth = 1) +
+      geom_point(data = d,
+                 aes(x = week_of_cycle, y = cumulative_n_includingold,
+                     fill = Year), size = 2, pch = 21, color = "white") +
+      labs(title = "Enrollment Over Time", x = "Weeks", y = "Enrollment") +
+      scale_colour_discrete(c("red","blue", "orange")) +
+      scale_colour_manual(values = c("#1B9E77", "#D95F02", "#7570B3")) +
+      scale_fill_manual(values = c("#1B9E77", "#D95F02", "#7570B3"))+
+      theme_minimal() +
+      theme(axis.title = element_text(size = 16),
+            axis.text = element_text(size = 14),
+            legend.text = element_text(size = 16),
+            legend.title = element_blank())
+
+
+diff_total <- diff_total$`cumulative_applicants_Current Year` - diff_total$`cumulative_applicants_Previous Year`
+
+directioncum <- ifelse(diff_total >= 0, "ahead", "behind")
+color <- ifelse(diff_total >= 0, "green" , "red")
+```
+
+<div style="font-size: 28px;">
+We are currently 
+<span style="color:`r color`; font-weight:bold;">
+`r formatC(abs(diff_total), format = "f", big.mark = ",", digits = 0)` enrollees `r directioncum`
+</span>
+compared to the same time last year.
+</div>
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE, fig.align='center',fig.width=16, fig.height=7, out.width="100%"}
+base_plot
+```
