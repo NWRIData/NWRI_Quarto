@@ -202,9 +202,9 @@ table<-rbind(district_levelprePM1, district_levelpostPM1) |>
   pivot_wider(id_cols = DISTRICT_NAME,names_from = period,values_from = c(total_eligible_d, total_eligiblity, total_enroll_d, total_enroll,nonmatch_added_enroll)) |>
   rowwise() |>
   mutate(delta_eligibile_n = total_eligible_d_postpm1 - total_eligible_d_prepm1,
-         delta_eligibile_perc = round((total_eligiblity_postpm1 - total_eligiblity_prepm1)*100),
+         delta_eligibile_perc = ((total_eligiblity_postpm1 - total_eligiblity_prepm1)),
          delta_enroll_n = (total_enroll_d_postpm1 - total_enroll_d_prepm1),
-         delta_enroll_perc = round((total_enroll_postpm1 - total_enroll_prepm1)*100),
+         delta_enroll_perc = ((total_enroll_postpm1 - total_enroll_prepm1)),
          delta_enroll_perc_scholastic = round((nonmatch_added_enroll_postpm1 - nonmatch_added_enroll_prepm1)*100)) |>
   select(DISTRICT_NAME, delta_eligibile_n,delta_eligibile_perc,delta_enroll_n,delta_enroll_perc,delta_enroll_perc_scholastic)
 
@@ -271,7 +271,41 @@ tbl <- reactable(
   defaultSortOrder = "desc",
   highlight = TRUE,
   table,
-  theme = slate_change(centered = TRUE, header_font_size = 20, font_size = 20))
+  theme = slate_change(centered = TRUE, header_font_size = 20, font_size = 20),
+  columns = list(
+    
+    delta_enroll_perc = colDef(
+      align = "center",
+      name = "Change Enrolled %",
+      cell = data_bars(
+        data = table,
+        fill_color = "cyan",
+        background = "#272b30",
+        bar_height = 7,
+        text_position = 'outside-end',
+        text_color = "cyan",
+        round_edges = TRUE,
+        number_fmt = scales::label_percent(accuracy = 0.1)
+      )
+    ),
+    
+    delta_eligibile_perc = colDef(
+      align = "center",
+      name = "Change Eligibility %",
+      cell = data_bars(
+        data = table,
+        fill_color = "cyan",
+        background = "#272b30",
+        bar_height = 7,
+        text_position = 'outside-end',
+        text_color = "cyan",
+        round_edges = TRUE,
+        number_fmt = scales::label_percent(accuracy = 0.1)
+      )
+
+    )
+  )#end of columns
+  )
 tbl
 ```
 ::::
