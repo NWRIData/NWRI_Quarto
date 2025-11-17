@@ -29,6 +29,8 @@ execute:
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+require(reactable)
+require(reactablefmtr)
 ```
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
@@ -54,7 +56,6 @@ get_latest_rds <- function(dir_path, verbose = TRUE) {
 total_data<-get_latest_rds("data/total_data")
 diff_total<-get_latest_rds("data/diff_total")
 ```
-
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
 d = total_data
@@ -91,18 +92,12 @@ directioncum <- ifelse(diff_total >= 0, "ahead", "behind")
 color <- ifelse(diff_total >= 0, "green" , "red")
 ```
 
-
-::: panel-tabset
+:::: panel-tabset
 ## Enrollment Trends
 
-
-<div style="font-size: 28px;">
-We are currently 
-<span style="color:`r color`; font-weight:bold;">
-`r formatC(abs(diff_total), format = "f", big.mark = ",", digits = 0)` enrollees `r directioncum`
-</span>
-compared to the same time last year.
-</div>
+::: {style="font-size: 28px;"}
+We are currently [ `r formatC(abs(diff_total), format = "f", big.mark = ",", digits = 0)` enrollees `r directioncum` ]{style="color:`r color`; font-weight:bold;"} compared to the same time last year.
+:::
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE, fig.align='center',fig.width=16, fig.height=7, out.width="100%"}
 base_plot
@@ -140,7 +135,143 @@ other_plot<-ggplot(data = NULL) +
 other_plot
 ```
 
-## Table here
+## PM1 Progress 2025-26
+
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE, fig.align='center',fig.width=16, fig.height=7, out.width="100%"}
-graph_total
+#read in eligiblity and enrollment data
+prepm1<-readRDS("data/pm1_2526/final_table2025-08-19.rds")
+postpm1<-readRDS("data/pm1_2526/final_table2025-11-17.rds")
+
+#read in non-match data as well
+nonmatchprepm1<-readRDS("data/pm1_2526/non_match_district2025-10-21.rds")
+nonmatchpostpm1<-readRDS("data/pm1_2526/non_match_district2025-11-17.rds")
+
+prepm1<- prepm1 |> mutate(n_enrolled = ifelse(is.na(n_enrolled), 0, n_enrolled),
+         n_eligible = ifelse(is.na(n_eligible), 0, n_eligible))  |>
+  filter(!is.na(n_total)) |>
+  mutate(perc_enroll = n_enrolled/n_total,
+         perc_eligible = n_eligible/n_total) |>
+  filter(!perc_enroll > 1) |>
+  rename(DistrictID = district,
+         SchoolID = school)
+
+postpm1<- postpm1 |> mutate(n_enrolled = ifelse(is.na(n_enrolled), 0, n_enrolled),
+         n_eligible = ifelse(is.na(n_eligible), 0, n_eligible))  |>
+  filter(!is.na(n_total)) |>
+  mutate(perc_enroll = n_enrolled/n_total,
+         perc_eligible = n_eligible/n_total) |>
+  filter(!perc_enroll > 1) |>
+  rename(DistrictID = district,
+         SchoolID = school)
+
+#now make district-level tables
+district_levelprePM1<-prepm1 |>
+   group_by(DISTRICT_NAME) |>
+   summarise(total_eligible_d= sum(n_eligible),
+            total_enroll_d = sum(n_enrolled),
+            total_district_pop = sum(n_total)) |>
+  ungroup() 
+
+district_levelpostPM1<-postpm1 |>
+   group_by(DISTRICT_NAME) |>
+   summarise(total_eligible_d= sum(n_eligible),
+            total_enroll_d = sum(n_enrolled),
+            total_district_pop = sum(n_total)) |>
+  ungroup() 
+
+district_levelprePM1<-left_join(district_levelprePM1, nonmatchprepm1 |> select(DistrictName, n), by = c("DISTRICT_NAME"= "DistrictName")) |>
+  mutate(total_eligiblity = total_eligible_d/total_district_pop, 
+         total_enroll = total_enroll_d/total_eligible_d,
+         nonmatch_added_enroll = (total_enroll_d + n)/total_eligible_d
+         ) %>%
+   drop_na(DISTRICT_NAME) %>%
+  select(-c(total_district_pop,n)) |>
+    mutate(period = "prepm1")
+
+district_levelpostPM1<-left_join(district_levelpostPM1, nonmatchpostpm1 |> select(DistrictName, n), by = c("DISTRICT_NAME"= "DistrictName")) |>
+  mutate(total_eligiblity = total_eligible_d/total_district_pop, 
+         total_enroll = total_enroll_d/total_eligible_d,
+         nonmatch_added_enroll = (total_enroll_d + n)/total_eligible_d
+         ) %>%
+   drop_na(DISTRICT_NAME) %>%
+  select(-c(total_district_pop,n)) |>
+  mutate(period = "postpm1")
+
+
+table<-rbind(district_levelprePM1, district_levelpostPM1) |>
+  pivot_wider(id_cols = DISTRICT_NAME,names_from = period,values_from = c(total_eligible_d, total_eligiblity, total_enroll_d, total_enroll,nonmatch_added_enroll)) |>
+  rowwise() |>
+  mutate(delta_eligibile_n = total_eligible_d_postpm1 - total_eligible_d_prepm1,
+         delta_eligibile_perc = round((total_eligiblity_postpm1 - total_eligiblity_prepm1)*100),
+         delta_enroll_n = (total_enroll_d_postpm1 - total_enroll_d_prepm1),
+         delta_enroll_perc = round((total_enroll_postpm1 - total_enroll_prepm1)*100),
+         delta_enroll_perc_scholastic = round((nonmatch_added_enroll_postpm1 - nonmatch_added_enroll_prepm1)*100)) |>
+  select(DISTRICT_NAME, delta_eligibile_n,delta_eligibile_perc,delta_enroll_n,delta_enroll_perc,delta_enroll_perc_scholastic)
+
+
+
 ```
+
+
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+
+font_size = 15
+font_color = "#aaaaaa"
+header_font_size = 16
+header_font_color = "#97999b"
+cell_padding = 6
+centered = FALSE
+#now create a theme for the table
+slate_change<-function (font_size = 15, font_color = "#aaaaaa", header_font_size = 16, 
+    header_font_color = "#97999b", cell_padding = 6, centered = FALSE, backcolor = "#272b30",
+    borderColor2 = "#272b30") 
+{
+    if (!is.logical(centered)) {
+        stop("`centered` must be TRUE or FALSE")
+    }
+    if (centered == TRUE) {
+        centered_content = list(display = "flex", flexDirection = "column", 
+            justifyContent = "center")
+    }
+    else {
+        centered_content = NULL
+    }
+    reactableTheme(cellStyle = centered_content, color = font_color, 
+        backgroundColor = backcolor, borderColor = borderColor2, 
+        borderWidth = "1px", stripedColor = "#464a4d", highlightColor = "#464a4d", 
+        cellPadding = cell_padding, tableStyle = list(fontSize = font_size), 
+        headerStyle = list(borderWidth = "2px", backgroundColor = backcolor, 
+            color = header_font_color, transitionDuration = "0.5s", 
+            `&:hover[aria-sort]` = list(backgroundColor = "#141516", 
+                color = "#ffffff"), `&[aria-sort='ascending'], &[aria-sort='descending']` = list(backgroundColor = "#141516", 
+                color = "#ffffff"), fontSize = header_font_size), 
+        groupHeaderStyle = list(`&:not(:empty)` = list(color = font_color, 
+            fontSize = header_font_size), `&:hover` = list(fontWeight = "bold", 
+            transitionDuration = "1s", transitionTimingFunction = "ease-out", 
+            color = "#ffffff")), searchInputStyle = list(backgroundColor = "#ffffff", 
+            color = "#aaaaaa", borderColor = "#dfe3e7", `&:focus` = list(color = "#aaaaaa")), 
+        inputStyle = list(backgroundColor = "#ffffff", color = "#aaaaaa"), 
+        rowSelectedStyle = list(backgroundColor = "#181a1c", 
+            color = "#ffffff"), selectStyle = list(backgroundColor = "#41464c", 
+            color = "#ffffff", borderColor = "#ffffff", outlineColor = "#ffffff", 
+            `&:hover` = list(backgroundColor = "#17191b", color = "#ffffff")), 
+        pageButtonStyle = list(backgroundColor = "#41464c", color = "#ffffff", 
+            `&:hover` = list(backgroundColor = "#17191b", color = "#ffffff")), 
+        pageButtonHoverStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"), pageButtonActiveStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"), pageButtonCurrentStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"))
+}
+tbl <- reactable(
+  # General table options
+  wrap = TRUE,
+  defaultPageSize = 100,
+  defaultSorted = 'delta_enroll_n',
+  defaultSortOrder = "desc",
+  highlight = TRUE,
+  table,
+  theme = slate_change(centered = TRUE, header_font_size = 20, font_size = 20))
+tbl
+```
+::::
