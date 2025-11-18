@@ -4,60 +4,89 @@ on:
   push:
     branches: [main]
   schedule:
-    # Weekdays only (1–5 = Mon–Fri)
-    # DST: March–November
-    - cron: '0 11 * 3-11 1-5'   # 7 AM ET
-    - cron: '0 19 * 3-11 1-5'   # 3 PM ET
-    # Standard Time: Jan, Feb, Dec
-    - cron: '0 12 * 1,2,12 1-5' # 7 AM ET
-    - cron: '0 20 * 1,2,12 1-5' # 3 PM ET
+    - cron: '0 11 * 3-11 1-5'   # 7 AM ET (DST)
+    - cron: '0 19 * 3-11 1-5'   # 3 PM ET (DST)
+    - cron: '0 12 * 1,2,12 1-5' # 7 AM ET (Standard)
+    - cron: '0 20 * 1,2,12 1-5' # 3 PM ET (Standard)
   workflow_dispatch:
 
 jobs:
-  # ---- Job 1: Download from Dropbox ----
-  download:
+  # ---- Job 1: Download from Dropbox and upload as artifacts ----
+  download-enrollment:
+    name: Download latest enrollment (and copy to heatmap folder)
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Python and Dropbox SDK
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Python + Dropbox SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
+          pip3 install --upgrade pip
           pip3 install dropbox
-      - name: Run Python script
-        run: python dropbox_api.py
-      - name: Upload latest downloaded eligibility file
+
+      - name: Run Dropbox download script
         run: |
-          latest_file=$(ls -1t reports/Eligiblity_table_2526/dropbox_data/* | head -n 1)
-          echo "Uploading $latest_file"
-          echo "latest_file=$latest_file" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v4
+          python dropbox_api.py
+
+      - name: List created files for debug
+        run: |
+          echo "Eligiblity folder contents:"
+          ls -la reports/Eligiblity_table_2526/dropbox_data || echo "No eligiblity folder"
+          echo "Heatmap folder contents:"
+          ls -la reports/heatmap_districts/dropbox_data || echo "No heatmap folder"
+
+      - name: Capture latest file paths (outputs)
+        id: set_outputs
+        run: |
+          elig=$(ls -1t reports/Eligiblity_table_2526/dropbox_data/* 2>/dev/null | head -n 1 || echo "")
+          heat=$(ls -1t reports/heatmap_districts/dropbox_data/* 2>/dev/null | head -n 1 || echo "")
+          if [ -z "$elig" ]; then
+            echo "::error ::No eligibility file found in reports/Eligiblity_table_2526/dropbox_data/"
+            exit 1
+          fi
+          if [ -z "$heat" ]; then
+            echo "::warning ::No heatmap file found in reports/heatmap_districts/dropbox_data/ (continuing if you intentionally only want one copy)"
+          fi
+          echo "elig_file=$elig" >> $GITHUB_OUTPUT
+          echo "heat_file=$heat" >> $GITHUB_OUTPUT
+
+      - name: Upload eligibility artifact
+        uses: actions/upload-artifact@v4
         with:
           name: dropbox-eligibility
-          path: ${{ env.latest_file }}
-      - name: Upload latest downloaded heatmap file
-        run: |
-          latest_file=$(ls -1t reports/heatmap_districts/dropbox_data/* | head -n 1)
-          echo "Uploading $latest_file"
-          echo "latest_file=$latest_file" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v4
+          path: ${{ steps.set_outputs.outputs.elig_file }}
+
+      - name: Upload heatmap artifact
+        if: ${{ steps.set_outputs.outputs.heat_file != '' }}
+        uses: actions/upload-artifact@v4
         with:
           name: dropbox-heatmap
-          path: ${{ env.latest_file }}
+          path: ${{ steps.set_outputs.outputs.heat_file }}
 
-  # ---- Job 2: R Data Processing ----
+  # ---- Job 2: Process Eligibility (R) ----
   process-eligibility:
+    name: Process eligibility data
     runs-on: ubuntu-latest
-    needs: download
-    steps:
-      - uses: actions/checkout@v4
+    needs: download-enrollment
 
-      - uses: actions/download-artifact@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download eligibility artifact
+        uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: reports/Eligiblity_table_2526/dropbox_data/
 
-      - uses: r-lib/actions/setup-r@v2
+      - name: Show downloaded eligibility files (debug)
+        run: ls -la reports/Eligiblity_table_2526/dropbox_data/ || true
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
 
       - name: Install R packages
         run: Rscript -e 'install.packages(c("dplyr","here","stringr","lubridate","tidyr"), repos="https://cloud.r-project.org")'
@@ -65,130 +94,177 @@ jobs:
       - name: Run eligibility processing
         run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
 
-      # Capture latest final_table
-      - name: Find latest eligibility table
+      - name: Find generated eligibility outputs
+        id: find_outputs
         run: |
-          table_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
-          echo "table_file=$table_file" >> $GITHUB_ENV
-          
-      # Capture latest nonmatched file
-      - name: Find latest nonmatch table
-        run: |
-          nonmatchfile=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds | head -n 1)
-          echo "nonmatchfile=$nonmatchfile" >> $GITHUB_ENV
+          table_file=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds 2>/dev/null | head -n 1 || echo "")
+          nonmatchfile=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds 2>/dev/null | head -n 1 || echo "")
+          heatmap_file=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/heat_mapweekly*.rds 2>/dev/null | head -n 1 || echo "")
+          echo "table_file=$table_file" >> $GITHUB_OUTPUT
+          echo "nonmatchfile=$nonmatchfile" >> $GITHUB_OUTPUT
+          echo "heatmap_file=$heatmap_file" >> $GITHUB_OUTPUT
+          echo "Found table: $table_file"
+          echo "Found nonmatch: $nonmatchfile"
+          echo "Found heatmap: $heatmap_file"
 
-      # Capture latest heatmap file
-      - name: Find latest heatmap file
-        run: |
-          heatmap_file=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/heat_mapweekly*.rds | head -n 1)
-          echo "heatmap_file=$heatmap_file" >> $GITHUB_ENV
-
-      # Upload eligibility table
-      - uses: actions/upload-artifact@v4
+      - name: Upload eligibility table artifact
+        if: ${{ steps.find_outputs.outputs.table_file != '' }}
+        uses: actions/upload-artifact@v4
         with:
           name: eligibility-data
-          path: ${{ env.table_file }}
-          
-      # Upload nonmatch table
-      - uses: actions/upload-artifact@v4
+          path: ${{ steps.find_outputs.outputs.table_file }}
+
+      - name: Upload nonmatch artifact
+        if: ${{ steps.find_outputs.outputs.nonmatchfile != '' }}
+        uses: actions/upload-artifact@v4
         with:
           name: nonmatch-data
-          path: ${{ env.nonmatchfile }}
+          path: ${{ steps.find_outputs.outputs.nonmatchfile }}
 
-      # Upload heatmap data
-      - uses: actions/upload-artifact@v4
+      - name: Upload heatmap-from-elig artifact
+        if: ${{ steps.find_outputs.outputs.heatmap_file != '' }}
+        uses: actions/upload-artifact@v4
         with:
           name: heatmap-dataeleg
-          path: ${{ env.heatmap_file }}
+          path: ${{ steps.find_outputs.outputs.heatmap_file }}
 
-  # ---- Job 3: Heatmap Processing ----
+  # ---- Job 3: Process Heatmap (R) ----
   process-heatmap:
+    name: Process heatmap data
     runs-on: ubuntu-latest
-    needs: download
+    needs: download-enrollment
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download heatmap artifact (from Dropbox job)
+        uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
           path: reports/heatmap_districts/dropbox_data/
-      - uses: r-lib/actions/setup-r@v2
-      - name: Install R packages
+
+      - name: Show downloaded heatmap files (debug)
+        run: ls -la reports/heatmap_districts/dropbox_data/ || true
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: Install R packages for heatmap
         run: Rscript -e 'install.packages(c("dplyr","here","tidyr","lubridate","reactable"), repos="https://cloud.r-project.org")'
+
       - name: Run heatmap processing
         run: Rscript reports/heatmap_districts/setting_up_enrollment_heat.R
-      - name: Upload latest heatmap outputs
+
+      - name: Find generated heatmap outputs
+        id: find_heat_outputs
         run: |
-          latest_data=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds | head -n 1)
-          latest_weekly=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds | head -n 1)
-          latest_coldef=$(ls -1t reports/heatmap_districts/reactable_element/*.rds | head -n 1)
-          echo "Uploading $latest_data, $latest_weekly, $latest_coldef"
-          echo "latest_data=$latest_data" >> $GITHUB_ENV
-          echo "latest_weekly=$latest_weekly" >> $GITHUB_ENV
-          echo "latest_coldef=$latest_coldef" >> $GITHUB_ENV
-      - uses: actions/upload-artifact@v4
+          latest_data=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds 2>/dev/null | head -n 1 || echo "")
+          latest_weekly=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds 2>/dev/null | head -n 1 || echo "")
+          latest_coldef=$(ls -1t reports/heatmap_districts/reactable_element/*.rds 2>/dev/null | head -n 1 || echo "")
+          echo "latest_data=$latest_data" >> $GITHUB_OUTPUT
+          echo "latest_weekly=$latest_weekly" >> $GITHUB_OUTPUT
+          echo "latest_coldef=$latest_coldef" >> $GITHUB_OUTPUT
+          echo "Found heatmap outputs: $latest_data, $latest_weekly, $latest_coldef"
+
+      - name: Upload heatmap data artifact
+        uses: actions/upload-artifact@v4
         with:
           name: heatmap-data
           path: |
-            ${{ env.latest_data }}
-            ${{ env.latest_weekly }}
-            ${{ env.latest_coldef }}
+            ${{ steps.find_heat_outputs.outputs.latest_data }}
+            ${{ steps.find_heat_outputs.outputs.latest_weekly }}
+            ${{ steps.find_heat_outputs.outputs.latest_coldef }}
 
-  # ---- Job 4: Render Quarto + Final Commit ----
+  # ---- Job 4: Render Quarto + Commit docs ----
   render:
+    name: Render Quarto docs and commit
     runs-on: ubuntu-latest
     needs: [process-eligibility, process-heatmap]
     permissions:
       contents: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # ensure full history for committing
-      - uses: actions/download-artifact@v4
+          fetch-depth: 0
+
+      # Download artifacts into the expected report paths
+      - name: Download dropbox eligibility
+        uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: reports/Eligiblity_table_2526/dropbox_data/
-      - uses: actions/download-artifact@v4
+
+      - name: Download eligibility processing outputs
+        uses: actions/download-artifact@v4
         with:
           name: eligibility-data
           path: reports/Eligiblity_table_2526/data/
-      - uses: actions/download-artifact@v4
+
+      - name: Download dropbox heatmap (if available)
+        uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
           path: reports/heatmap_districts/dropbox_data/
-      - uses: actions/download-artifact@v4
+        continue-on-error: true
+
+      - name: Download heatmap processing outputs
+        uses: actions/download-artifact@v4
         with:
           name: heatmap-data
           path: reports/heatmap_districts/
-      - uses: actions/download-artifact@v4
+        continue-on-error: true
+
+      - name: Download heatmap-from-elig (if produced)
+        uses: actions/download-artifact@v4
         with:
           name: heatmap-dataeleg
           path: reports/Eligiblity_table_2526/heatmapdataweekly/
-      - uses: r-lib/actions/setup-r@v2
-      - uses: quarto-dev/quarto-actions/setup@v2
+        continue-on-error: true
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: Setup Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libcurl4-openssl-dev libssl-dev libxml2-dev \
             libcairo2-dev libgit2-dev
-      - name: Install R packages
+
+      - name: Install R packages for rendering
         run: |
           Rscript -e 'install.packages(c(
             "tidyr","stringr","lubridate","dplyr","scales","scico","viridis",
             "htmlwidgets","htmltools","reactable","reactablefmtr","wesanderson","RColorBrewer"
           ), repos="https://cloud.r-project.org")'
+
       - name: Render Quarto docs
         run: |
-          quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
-          quarto render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
+          quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs || true
+          quarto render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs || true
 
-      # ---- CHANGE MADE HERE ----
-      - name: Commit and push generated HTML (force push)
+      - name: Show docs dir (debug)
+        run: ls -la docs || true
+
+      - name: Commit and push generated HTML
+        env:
+          GIT_AUTHOR_NAME: "github-actions[bot]"
+          GIT_AUTHOR_EMAIL: "github-actions[bot]@users.noreply.github.com"
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout main
+          git config user.name "$GIT_AUTHOR_NAME"
+          git config user.email "$GIT_AUTHOR_EMAIL"
+          git checkout main || git switch main
+          git pull origin main
           git add docs/
-          git commit -m "Pipeline update $(date -u +'%Y-%m-%d') [skip ci]" || echo "No changes to commit"
-          git push origin main --force
-      # ---- END CHANGE ----
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Pipeline update $(date -u +'%Y-%m-%d') [skip ci]"
+            git push origin main
+          fi
