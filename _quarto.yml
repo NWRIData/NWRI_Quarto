@@ -3,8 +3,9 @@ project:
   output-dir: docs
 
 website:
-  title: "New Worlds Reading Data Team"
+  title: "<span>Data</span><br><span>Team</span>"
   navbar:
+    logo: reports/Eligiblity_table_2526/images/NWRI_Logo_blue_orange.png
     left:
       - href: index.qmd
         text: Home
@@ -14,9 +15,8 @@ website:
             text: Eligibility Table
           - href: reports/heatmap_districts/Heat_map_enroll.qmd
             text: Enrollment Tables
-
+            
 format:
   html:
     theme: mintly
     css: styles.css
-
