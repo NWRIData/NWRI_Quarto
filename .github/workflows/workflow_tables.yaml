@@ -70,12 +70,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Safe download — won't fail if missing
-      - uses: actions/download-artifact@v4
+      # ---------- check for artifact (dropbox-eligibility) ----------
+      - name: Check artifact dropbox-eligibility exists
+        id: check_dropbox_elig
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking for artifact: dropbox-eligibility"
+          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
+          if echo "$names" | grep -Fxq "dropbox-eligibility"; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download dropbox-eligibility (if present)
+        if: steps.check_dropbox_elig.outputs.found == 'true'
+        uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: temp/dropbox-eligibility/
-          if-no-artifact-found: ignore
 
       - name: Move CSVs safely
         run: |
@@ -125,11 +139,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      # ---------- check for artifact (dropbox-heatmap) ----------
+      - name: Check artifact dropbox-heatmap exists
+        id: check_dropbox_heat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking for artifact: dropbox-heatmap"
+          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
+          if echo "$names" | grep -Fxq "dropbox-heatmap"; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download dropbox-heatmap (if present)
+        if: steps.check_dropbox_heat.outputs.found == 'true'
+        uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
           path: temp/dropbox-heatmap/
-          if-no-artifact-found: ignore
 
       - name: Move heatmap CSVs safely
         run: |
@@ -179,36 +208,110 @@ jobs:
         with:
           fetch-depth: 0
 
-      # SAFE artifact downloads (will not fail)
-      - uses: actions/download-artifact@v4
+      # ---------- check & download: dropbox-eligibility ----------
+      - name: Check artifact dropbox-eligibility exists
+        id: check_dropbox_elig_render
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking for artifact: dropbox-eligibility"
+          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
+          if echo "$names" | grep -Fxq "dropbox-eligibility"; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download dropbox-eligibility (if present)
+        if: steps.check_dropbox_elig_render.outputs.found == 'true'
+        uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: temp/eligibility/
-          if-no-artifact-found: ignore
 
-      - uses: actions/download-artifact@v4
+      # ---------- check & download: eligibility-data ----------
+      - name: Check artifact eligibility-data exists
+        id: check_elig_data_render
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking for artifact: eligibility-data"
+          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
+          if echo "$names" | grep -Fxq "eligibility-data"; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download eligibility-data (if present)
+        if: steps.check_elig_data_render.outputs.found == 'true'
+        uses: actions/download-artifact@v4
         with:
           name: eligibility-data
           path: temp/eligibility-data/
-          if-no-artifact-found: ignore
 
-      - uses: actions/download-artifact@v4
+      # ---------- check & download: dropbox-heatmap ----------
+      - name: Check artifact dropbox-heatmap exists (render)
+        id: check_dropbox_heat_render
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking for artifact: dropbox-heatmap"
+          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
+          if echo "$names" | grep -Fxq "dropbox-heatmap"; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download dropbox-heatmap (if present, render)
+        if: steps.check_dropbox_heat_render.outputs.found == 'true'
+        uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
           path: temp/heatmap/
-          if-no-artifact-found: ignore
 
-      - uses: actions/download-artifact@v4
+      # ---------- check & download: heatmap-data ----------
+      - name: Check artifact heatmap-data exists
+        id: check_heatmap_data_render
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking for artifact: heatmap-data"
+          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
+          if echo "$names" | grep -Fxq "heatmap-data"; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download heatmap-data (if present)
+        if: steps.check_heatmap_data_render.outputs.found == 'true'
+        uses: actions/download-artifact@v4
         with:
           name: heatmap-data
           path: temp/heatmap-data/
-          if-no-artifact-found: ignore
 
-      - uses: actions/download-artifact@v4
+      # ---------- check & download: eligibility-processed ----------
+      - name: Check artifact eligibility-processed exists
+        id: check_elig_processed_render
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Checking for artifact: eligibility-processed"
+          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
+          if echo "$names" | grep -Fxq "eligibility-processed"; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download eligibility-processed (if present)
+        if: steps.check_elig_processed_render.outputs.found == 'true'
+        uses: actions/download-artifact@v4
         with:
           name: eligibility-processed
           path: temp/eligibility-processed/
-          if-no-artifact-found: ignore
 
       - name: Merge artifact files
         run: |
@@ -246,22 +349,24 @@ jobs:
 
       - name: Render Quarto
         run: |
-          quarto.render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
-          quarto.render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
+          quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
+          quarto render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
 
       - name: Commit and push generated files
         run: |
           git config user.name  "github-actions[bot]"
-          git.config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git.fetch origin main
-          git.merge --ff-only origin/main || echo "Nothing to merge"
+          # Pull remote main if available (fast-forward only) to avoid accidental divergence
+          git fetch origin main
+          git merge --ff-only origin/main || echo "Nothing to merge"
 
-          git.add -A || true
+          # Stage everything (generated files)
+          git add -A || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git.commit -m "Pipeline update $(date -u +'%Y-%m-%dT%H:%MZ') [skip ci]"
-            git.push origin HEAD
+            git commit -m "Pipeline update $(date -u +'%Y-%m-%dT%H:%MZ') [skip ci]"
+            git push origin HEAD
           fi
