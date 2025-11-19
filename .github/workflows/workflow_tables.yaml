@@ -2,7 +2,9 @@ name: Full Data Pipeline
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - workflow-test 
   workflow_dispatch:
   schedule:
     - cron: '0 11 * 3-11 1-5'
@@ -26,13 +28,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Python & Dropbox SDK
-        run: |
-          pip install dropbox
+        run: pip install dropbox
 
       - name: Run Dropbox API Script
         run: python dropbox_api.py
 
-      # Set outputs for downstream jobs
       - name: Capture latest files
         id: out
         run: |
@@ -41,7 +41,6 @@ jobs:
           echo "elig_file=$elig" >> $GITHUB_OUTPUT
           echo "heat_file=$heat" >> $GITHUB_OUTPUT
 
-      # Upload artifacts (required for cross-job transfer)
       - uses: actions/upload-artifact@v4
         with:
           name: dropbox-eligibility
@@ -68,10 +67,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Download into temporary directory to avoid overwriting
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
-          path: reports/Eligiblity_table_2526/dropbox_data/
+          path: temp/dropbox-eligibility/
+
+      # Move only CSV files into the real folder and do NOT overwrite last_processed.txt
+      - name: Move eligibility CSVs safely
+        run: |
+          mkdir -p reports/Eligiblity_table_2526/dropbox_data
+          cp temp/dropbox-eligibility/*.csv reports/Eligiblity_table_2526/dropbox_data/
 
       - uses: r-lib/actions/setup-r@v2
 
@@ -116,10 +122,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Download into temp directory
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
-          path: reports/heatmap_districts/dropbox_data/
+          path: temp/dropbox-heatmap/
+
+      # Move safely
+      - name: Move heatmap CSVs safely
+        run: |
+          mkdir -p reports/heatmap_districts/dropbox_data
+          cp temp/dropbox-heatmap/*.csv reports/heatmap_districts/dropbox_data/
 
       - uses: r-lib/actions/setup-r@v2
 
@@ -163,26 +176,44 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Retrieve all artifacts from previous jobs
+      # Download artifacts into temporary staging areas
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
-          path: reports/Eligiblity_table_2526/dropbox_data/
+          path: temp/eligibility/
 
       - uses: actions/download-artifact@v4
         with:
           name: eligibility-data
-          path: reports/Eligiblity_table_2526/
+          path: temp/eligibility-data/
 
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
-          path: reports/heatmap_districts/dropbox_data/
+          path: temp/heatmap/
 
       - uses: actions/download-artifact@v4
         with:
           name: heatmap-data
-          path: reports/heatmap_districts/
+          path: temp/heatmap-data/
+
+      # Move files into repo without overwriting last_processed.txt
+      - name: Merge artifact files safely
+        run: |
+          mkdir -p reports/Eligiblity_table_2526/dropbox_data
+          mkdir -p reports/heatmap_districts/dropbox_data
+          mkdir -p reports/Eligiblity_table_2526/data
+          mkdir -p reports/Eligiblity_table_2526/nonmatch_data
+          mkdir -p reports/Eligiblity_table_2526/heatmapdataweekly
+          mkdir -p reports/heatmap_districts/heatmapdata
+          mkdir -p reports/heatmap_districts/heatmapdataweekly
+          mkdir -p reports/heatmap_districts/reactable_element
+
+          cp temp/eligibility/*.csv reports/Eligiblity_table_2526/dropbox_data/ 2>/dev/null || true
+          cp temp/eligibility-data/*.rds reports/Eligiblity_table_2526/ -R 2>/dev/null || true
+
+          cp temp/heatmap/*.csv reports/heatmap_districts/dropbox_data/ 2>/dev/null || true
+          cp temp/heatmap-data/*.rds reports/heatmap_districts/ -R 2>/dev/null || true
 
       - uses: r-lib/actions/setup-r@v2
       - uses: quarto-dev/quarto-actions/setup@v2
@@ -218,7 +249,6 @@ jobs:
           echo "Checking changed files..."
           git status --short
 
-          # Add *all pipeline output directories*
           git add reports/Eligiblity_table_2526/dropbox_data/ || true
           git add reports/Eligiblity_table_2526/data/ || true
           git add reports/Eligiblity_table_2526/nonmatch_data/ || true
@@ -231,7 +261,9 @@ jobs:
 
           git add docs/ || true
 
-          # Only commit if changes exist
+          # Ensure last_processed.txt is committed
+          git add reports/Eligiblity_table_2526/dropbox_data/last_processed.txt || true
+
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else

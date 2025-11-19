@@ -142,7 +142,7 @@ saveRDS(df, file =here("reports","Eligiblity_table_2526", "data",paste0("final_t
 saveRDS(lost_kids_data, file =here("reports","Eligiblity_table_2526", "nonmatch_data",paste0("non_match_district",date,".rds")))
 
 
-###setting up heat map for eligiblity table
+###setting up heat map for eligibility table
 
 # generate full sequence of weekly labels from min week to current week
 full_weeks <- seq(
