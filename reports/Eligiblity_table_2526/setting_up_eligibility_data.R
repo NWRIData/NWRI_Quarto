@@ -139,6 +139,7 @@ df<-all_students %>%
 
 
 saveRDS(df, file =here("reports","Eligiblity_table_2526", "data",paste0("final_table",date,".rds")))
+saveRDS(df, file =here("reports","enrollment_progress", "data",paste0("final_table",date,".rds")))
 saveRDS(lost_kids_data, file =here("reports","Eligiblity_table_2526", "nonmatch_data",paste0("non_match_district",date,".rds")))
 
 

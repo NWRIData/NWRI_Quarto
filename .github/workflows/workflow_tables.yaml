@@ -244,6 +244,7 @@ jobs:
           git add reports/Eligiblity_table_2526/nonmatch_data/ || true
           git add reports/Eligiblity_table_2526/heatmapdataweekly/ || true
           git add reports/Eligiblity_table_2526/last_processed.txt  # ✅ make sure it's added
+          git add reports/enrollment_progress/data/ || true
 
           git add reports/heatmap_districts/dropbox_data/ || true
           git add reports/heatmap_districts/heatmapdata/ || true
