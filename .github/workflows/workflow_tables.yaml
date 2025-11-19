@@ -36,8 +36,9 @@ jobs:
       - name: Capture latest files
         id: out
         run: |
-          elig=$(ls -1t reports/Eligiblity_table_2526/dropbox_data/* | head -n 1)
-          heat=$(ls -1t reports/heatmap_districts/dropbox_data/* | head -n 1)
+          elig=$(ls -1t reports/Eligiblity_table_2526/dropbox_data/* 2>/dev/null | head -n 1)
+          heat=$(ls -1t reports/heatmap_districts/dropbox_data/* 2>/dev/null | head -n 1)
+
           echo "elig_file=$elig" >> $GITHUB_OUTPUT
           echo "heat_file=$heat" >> $GITHUB_OUTPUT
 
@@ -45,11 +46,13 @@ jobs:
         with:
           name: dropbox-eligibility
           path: ${{ steps.out.outputs.elig_file }}
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:
           name: dropbox-heatmap
           path: ${{ steps.out.outputs.heat_file }}
+          if-no-files-found: ignore
 
 
   # =========================================================
@@ -67,16 +70,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Download CSVs into temp folder
+      # Safe download — won't fail if missing
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: temp/dropbox-eligibility/
+          if-no-artifact-found: ignore
 
       - name: Move CSVs safely
         run: |
           mkdir -p reports/Eligiblity_table_2526/dropbox_data
-          cp temp/dropbox-eligibility/*.csv reports/Eligiblity_table_2526/dropbox_data/
+          cp temp/dropbox-eligibility/*.csv reports/Eligiblity_table_2526/dropbox_data/ 2>/dev/null || true
 
       - uses: r-lib/actions/setup-r@v2
 
@@ -89,21 +93,21 @@ jobs:
       - name: Capture outputs
         id: out
         run: |
-          final=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds | head -n 1)
-          nonmatch=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds | head -n 1)
-          heat=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/heat_mapweekly*.rds | head -n 1)
+          final=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds 2>/dev/null | head -n 1)
+          nonmatch=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds 2>/dev/null | head -n 1)
+          heat=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/heat_mapweekly*.rds 2>/dev/null | head -n 1)
 
           echo "final_table=$final" >> $GITHUB_OUTPUT
           echo "nonmatch=$nonmatch" >> $GITHUB_OUTPUT
           echo "weekly_heatmap=$heat" >> $GITHUB_OUTPUT
 
-      # ✅ Upload last_processed.txt & enrollment_progress/data for next job
       - uses: actions/upload-artifact@v4
         with:
           name: eligibility-processed
           path: |
             reports/Eligiblity_table_2526/last_processed.txt
             reports/enrollment_progress/data/
+          if-no-files-found: ignore
 
 
   # =========================================================
@@ -125,16 +129,17 @@ jobs:
         with:
           name: dropbox-heatmap
           path: temp/dropbox-heatmap/
+          if-no-artifact-found: ignore
 
       - name: Move heatmap CSVs safely
         run: |
           mkdir -p reports/heatmap_districts/dropbox_data
-          cp temp/dropbox-heatmap/*.csv reports/heatmap_districts/dropbox_data/
+          cp temp/dropbox-heatmap/*.csv reports/heatmap_districts/dropbox_data/ 2>/dev/null || true
 
       - uses: r-lib/actions/setup-r@v2
 
       - name: Install R packages
-        run: Rscript -e 'install.packages(c("dplyr","tidyr","lubridate","reactable", "here"), repos="https://cloud.r-project.org")'
+        run: Rscript -e 'install.packages(c("dplyr","tidyr","lubridate","reactable","here"), repos="https://cloud.r-project.org")'
 
       - name: Run heatmap processing
         run: Rscript reports/heatmap_districts/setting_up_enrollment_heat.R
@@ -142,13 +147,13 @@ jobs:
       - name: Capture outputs
         id: out
         run: |
-          d=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds | head -n 1)
-          w=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds | head -n 1)
-          r=$(ls -1t reports/heatmap_districts/reactable_element/*.rds | head -n 1)
+          d=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds 2>/dev/null | head -n 1)
+          w=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds 2>/dev/null | head -n 1)
+          r=$(ls -1t reports/heatmap_districts/reactable_element/*.rds 2>/dev/null | head -n 1)
 
-          echo "data=$d"   >> $GITHUB_OUTPUT
-          echo "week=$w"   >> $GITHUB_OUTPUT
-          echo "react=$r"  >> $GITHUB_OUTPUT
+          echo "data=$d"  >> $GITHUB_OUTPUT
+          echo "week=$w"  >> $GITHUB_OUTPUT
+          echo "react=$r" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:
@@ -157,6 +162,7 @@ jobs:
             ${{ steps.out.outputs.data }}
             ${{ steps.out.outputs.week }}
             ${{ steps.out.outputs.react }}
+          if-no-files-found: ignore
 
 
   # =========================================================
@@ -173,30 +179,37 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Download all artifacts
+      # SAFE artifact downloads (will not fail)
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: temp/eligibility/
+          if-no-artifact-found: ignore
+
       - uses: actions/download-artifact@v4
         with:
           name: eligibility-data
           path: temp/eligibility-data/
+          if-no-artifact-found: ignore
+
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
           path: temp/heatmap/
+          if-no-artifact-found: ignore
+
       - uses: actions/download-artifact@v4
         with:
           name: heatmap-data
           path: temp/heatmap-data/
-      # ✅ Download last_processed & enrollment_progress from Job 2
+          if-no-artifact-found: ignore
+
       - uses: actions/download-artifact@v4
         with:
           name: eligibility-processed
           path: temp/eligibility-processed/
+          if-no-artifact-found: ignore
 
-      # Move CSVs, RDS, last_processed.txt, enrollment_progress/data
       - name: Merge artifact files
         run: |
           mkdir -p reports/Eligiblity_table_2526/dropbox_data
@@ -233,34 +246,22 @@ jobs:
 
       - name: Render Quarto
         run: |
-          quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
-          quarto render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
+          quarto.render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
+          quarto.render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
 
-      # COMMIT + PUSH
       - name: Commit and push generated files
         run: |
           git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git.config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git fetch origin main
-          git merge --ff-only origin/main || echo "Nothing to merge"
+          git.fetch origin main
+          git.merge --ff-only origin/main || echo "Nothing to merge"
 
-          git add reports/Eligiblity_table_2526/dropbox_data/ || true
-          git add reports/Eligiblity_table_2526/data/ || true
-          git add reports/Eligiblity_table_2526/nonmatch_data/ || true
-          git add reports/Eligiblity_table_2526/heatmapdataweekly/ || true
-          git add reports/Eligiblity_table_2526/last_processed.txt || true
-          git add reports/enrollment_progress/data/ || true
-
-          git add reports/heatmap_districts/dropbox_data/ || true
-          git add reports/heatmap_districts/heatmapdata/ || true
-          git add reports/heatmap_districts/heatmapdataweekly/ || true
-          git add reports/heatmap_districts/reactable_element/ || true
-          git add docs/ || true
+          git.add -A || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Pipeline update $(date -u +'%Y-%m-%dT%H:%MZ') [skip ci]"
-            git push origin HEAD
+            git.commit -m "Pipeline update $(date -u +'%Y-%m-%dT%H:%MZ') [skip ci]"
+            git.push origin HEAD
           fi
