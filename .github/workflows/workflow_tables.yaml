@@ -97,13 +97,13 @@ jobs:
           echo "nonmatch=$nonmatch" >> $GITHUB_OUTPUT
           echo "weekly_heatmap=$heat" >> $GITHUB_OUTPUT
 
+      # ✅ Upload last_processed.txt & enrollment_progress/data for next job
       - uses: actions/upload-artifact@v4
         with:
-          name: eligibility-data
+          name: eligibility-processed
           path: |
-            ${{ steps.out.outputs.final_table }}
-            ${{ steps.out.outputs.nonmatch }}
-            ${{ steps.out.outputs.weekly_heatmap }}
+            reports/Eligiblity_table_2526/last_processed.txt
+            reports/enrollment_progress/data/
 
 
   # =========================================================
@@ -190,8 +190,13 @@ jobs:
         with:
           name: heatmap-data
           path: temp/heatmap-data/
+      # ✅ Download last_processed & enrollment_progress from Job 2
+      - uses: actions/download-artifact@v4
+        with:
+          name: eligibility-processed
+          path: temp/eligibility-processed/
 
-      # Move CSVs and RDS files into repo safely
+      # Move CSVs, RDS, last_processed.txt, enrollment_progress/data
       - name: Merge artifact files
         run: |
           mkdir -p reports/Eligiblity_table_2526/dropbox_data
@@ -202,11 +207,14 @@ jobs:
           mkdir -p reports/heatmap_districts/heatmapdata
           mkdir -p reports/heatmap_districts/heatmapdataweekly
           mkdir -p reports/heatmap_districts/reactable_element
+          mkdir -p reports/enrollment_progress/data
 
           cp temp/eligibility/*.csv reports/Eligiblity_table_2526/dropbox_data/ 2>/dev/null || true
           cp temp/eligibility-data/*.rds reports/Eligiblity_table_2526/ -R 2>/dev/null || true
           cp temp/heatmap/*.csv reports/heatmap_districts/dropbox_data/ 2>/dev/null || true
           cp temp/heatmap-data/*.rds reports/heatmap_districts/ -R 2>/dev/null || true
+          cp temp/eligibility-processed/last_processed.txt reports/Eligiblity_table_2526/ 2>/dev/null || true
+          cp -r temp/eligibility-processed/data/* reports/enrollment_progress/data/ 2>/dev/null || true
 
       - uses: r-lib/actions/setup-r@v2
       - uses: quarto-dev/quarto-actions/setup@v2
@@ -228,9 +236,7 @@ jobs:
           quarto render reports/Eligiblity_table_2526/Eligibility_table.qmd --to html --output-dir docs
           quarto render reports/heatmap_districts/Heat_map_enroll.qmd --to html --output-dir docs
 
-      # =============================================
-      # COMMIT + PUSH ALL GENERATED FILES
-      # =============================================
+      # COMMIT + PUSH
       - name: Commit and push generated files
         run: |
           git config user.name  "github-actions[bot]"
@@ -243,7 +249,7 @@ jobs:
           git add reports/Eligiblity_table_2526/data/ || true
           git add reports/Eligiblity_table_2526/nonmatch_data/ || true
           git add reports/Eligiblity_table_2526/heatmapdataweekly/ || true
-          git add reports/Eligiblity_table_2526/last_processed.txt  # ✅ make sure it's added
+          git add reports/Eligiblity_table_2526/last_processed.txt || true
           git add reports/enrollment_progress/data/ || true
 
           git add reports/heatmap_districts/dropbox_data/ || true
