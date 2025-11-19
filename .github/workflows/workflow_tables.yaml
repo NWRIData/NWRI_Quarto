@@ -2,9 +2,7 @@ name: Full Data Pipeline
 
 on:
   push:
-    branches:
-      - main
-      - workflow-test 
+    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: '0 11 * 3-11 1-5'
