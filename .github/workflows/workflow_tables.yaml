@@ -240,15 +240,18 @@ jobs:
       # =============================================
       - name: Commit and push generated files
         run: |
+          # Configure Git
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git switch main
-          git pull origin main
+          # Pull latest commits from main (optional, merges in remote changes)
+          git fetch origin main
+          git merge --ff-only origin/main || echo "Nothing to merge"
 
           echo "Checking changed files..."
           git status --short
 
+          # Add generated files
           git add reports/Eligiblity_table_2526/dropbox_data/ || true
           git add reports/Eligiblity_table_2526/data/ || true
           git add reports/Eligiblity_table_2526/nonmatch_data/ || true
@@ -264,9 +267,10 @@ jobs:
           # Ensure last_processed.txt is committed
           git add reports/Eligiblity_table_2526/dropbox_data/last_processed.txt || true
 
+          # Commit if there are changes
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
             git commit -m "Pipeline update $(date -u +'%Y-%m-%dT%H:%MZ') [skip ci]"
-            git push origin main
+            git push origin HEAD
           fi
