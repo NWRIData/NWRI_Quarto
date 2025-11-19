@@ -9,7 +9,7 @@ library(tidyr)
 date <- Sys.Date()
 
 # Path to "last processed" record
-last_processed_path <- here("reports", "Eligiblity_table_2526", "dropbox_data", "last_processed.txt")
+last_processed_path <- here("reports", "Eligiblity_table_2526", "last_processed.txt")
 
 # Read last processed filename if it exists
 last_processed <- if (file.exists(last_processed_path)) {

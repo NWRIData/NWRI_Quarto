@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - enrollment_prog 
+      - enrollment_prog
   workflow_dispatch:
   schedule:
     - cron: '0 11 * 3-11 1-5'
@@ -67,14 +67,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Download into temporary directory to avoid overwriting
+      # Download CSVs into temp folder
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: temp/dropbox-eligibility/
 
-      # Move only CSV files into the real folder and do NOT overwrite last_processed.txt
-      - name: Move eligibility CSVs safely
+      - name: Move CSVs safely
         run: |
           mkdir -p reports/Eligiblity_table_2526/dropbox_data
           cp temp/dropbox-eligibility/*.csv reports/Eligiblity_table_2526/dropbox_data/
@@ -82,7 +81,7 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
 
       - name: Install R packages
-        run: Rscript -e 'install.packages(c("dplyr","tidyr","stringr","lubridate", "here"), repos="https://cloud.r-project.org")'
+        run: Rscript -e 'install.packages(c("dplyr","tidyr","stringr","lubridate","here"), repos="https://cloud.r-project.org")'
 
       - name: Run eligibility processing
         run: Rscript reports/Eligiblity_table_2526/setting_up_eligibility_data.R
@@ -122,13 +121,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Download into temp directory
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
           path: temp/dropbox-heatmap/
 
-      # Move safely
       - name: Move heatmap CSVs safely
         run: |
           mkdir -p reports/heatmap_districts/dropbox_data
@@ -176,29 +173,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Download artifacts into temporary staging areas
+      # Download all artifacts
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
           path: temp/eligibility/
-
       - uses: actions/download-artifact@v4
         with:
           name: eligibility-data
           path: temp/eligibility-data/
-
       - uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
           path: temp/heatmap/
-
       - uses: actions/download-artifact@v4
         with:
           name: heatmap-data
           path: temp/heatmap-data/
 
-      # Move files into repo without overwriting last_processed.txt
-      - name: Merge artifact files safely
+      # Move CSVs and RDS files into repo safely
+      - name: Merge artifact files
         run: |
           mkdir -p reports/Eligiblity_table_2526/dropbox_data
           mkdir -p reports/heatmap_districts/dropbox_data
@@ -211,7 +205,6 @@ jobs:
 
           cp temp/eligibility/*.csv reports/Eligiblity_table_2526/dropbox_data/ 2>/dev/null || true
           cp temp/eligibility-data/*.rds reports/Eligiblity_table_2526/ -R 2>/dev/null || true
-
           cp temp/heatmap/*.csv reports/heatmap_districts/dropbox_data/ 2>/dev/null || true
           cp temp/heatmap-data/*.rds reports/heatmap_districts/ -R 2>/dev/null || true
 
@@ -240,34 +233,24 @@ jobs:
       # =============================================
       - name: Commit and push generated files
         run: |
-          # Configure Git
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Pull latest commits from main (optional, merges in remote changes)
           git fetch origin main
           git merge --ff-only origin/main || echo "Nothing to merge"
 
-          echo "Checking changed files..."
-          git status --short
-
-          # Add generated files
           git add reports/Eligiblity_table_2526/dropbox_data/ || true
           git add reports/Eligiblity_table_2526/data/ || true
           git add reports/Eligiblity_table_2526/nonmatch_data/ || true
           git add reports/Eligiblity_table_2526/heatmapdataweekly/ || true
+          git add reports/Eligiblity_table_2526/last_processed.txt  # ✅ make sure it's added
 
           git add reports/heatmap_districts/dropbox_data/ || true
           git add reports/heatmap_districts/heatmapdata/ || true
           git add reports/heatmap_districts/heatmapdataweekly/ || true
           git add reports/heatmap_districts/reactable_element/ || true
-
           git add docs/ || true
 
-          # Ensure last_processed.txt is committed
-          git add reports/Eligiblity_table_2526/dropbox_data/last_processed.txt || true
-
-          # Commit if there are changes
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
