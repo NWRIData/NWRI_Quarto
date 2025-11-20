@@ -434,8 +434,6 @@ tbl <- reactable(
       ),
       format = colFormat(separators = TRUE)
       ),
-      
-    
      diff_unmatch = colDef(
        html =T,
       align = "center",
