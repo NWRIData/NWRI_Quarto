@@ -9,7 +9,7 @@ library(tidyr)
 date <- Sys.Date()
 
 # Path to "last processed" record
-last_processed_path <- here("reports", "Eligiblity_table_2526", "dropbox_data", "last_processed.txt")
+last_processed_path <- here("reports", "Eligiblity_table_2526", "last_processed.txt")
 
 # Read last processed filename if it exists
 last_processed <- if (file.exists(last_processed_path)) {
@@ -139,10 +139,11 @@ df<-all_students %>%
 
 
 saveRDS(df, file =here("reports","Eligiblity_table_2526", "data",paste0("final_table",date,".rds")))
+saveRDS(df, file =here("reports","enrollment_progress", "data",paste0("final_table",date,".rds")))
 saveRDS(lost_kids_data, file =here("reports","Eligiblity_table_2526", "nonmatch_data",paste0("non_match_district",date,".rds")))
 
 
-###setting up heat map for eligiblity table
+###setting up heat map for eligibility table
 
 # generate full sequence of weekly labels from min week to current week
 full_weeks <- seq(
