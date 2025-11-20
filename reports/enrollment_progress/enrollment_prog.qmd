@@ -33,6 +33,7 @@ require(reactable)
 require(reactablefmtr)
 library(stringr)
 require(htmltools)
+library(wesanderson)
 
 
 ```
@@ -155,7 +156,12 @@ enrolled_students <- postpm1 %>%
     group_by(DistrictID, SchoolID, Grade) %>%
     summarise(n_enrolled = n(), .groups = "drop")
 
-nwri_all<-readRDS("data/base_data/nwri_all_table_11172025.rds")
+nwri_all_prepm1<-readRDS("data/base_data/nwri_all_table_08112025.rds")
+nwri_all_postpm1<-readRDS("data/base_data/nwri_all_table_11172025.rds")
+
+all_students_list<-list(nwri_all_prepm1, nwri_all_postpm1)
+
+
 nwri_eligibleprepm1<-readRDS("data/base_data/nwri_eligible_table_08112025.rds")
 nwri_eligiblepostpm1<-readRDS("data/base_data/nwri_eligible_table_11172025.rds")
 
@@ -164,9 +170,9 @@ eligiblity_list<-list(nwri_eligibleprepm1, nwri_eligiblepostpm1)
 MSID<-readRDS("data/base_data/MSID_10072025.rds")
 
 
-datalist_processed <- purrr::map2(data_list, eligiblity_list, function(x, y){
 
-  # ---- CLEAN ENROLLED ----
+lost_kids<-lapply(data_list, function(x){
+    # ---- CLEAN ENROLLED ----
 nwri_enrolled <- x %>%
   mutate(across(where(is.character), str_squish))
 
@@ -188,31 +194,6 @@ lost_kids <- nwri_enrolled %>%
     TRUE ~ DistrictName
   ))
 
-# ---- CLEAN ELIGIBLE ----
-nwri_eligible <- y %>%
-  mutate(across(where(is.character), str_squish)) %>%
-  mutate(grade = str_remove(grade, "^0+"))
-
-# ---- CLEAN ALL STUDENTS ----
-nwri_all <- nwri_all %>%   # if nwri_all is global, this stays as-is
-  mutate(across(where(is.character), str_squish)) %>%
-  mutate(grade = str_remove(grade, "^0+"))
-
-# ---- COUNT DATASETS ----
-enrolled_students <- nwri_enrolled %>%
-  group_by(DistrictID) %>%
-  summarise(n_enrolled = n(), .groups = "drop")
-
-eligible_students <- y %>%
-  filter(grade != "P") %>%
-  group_by(district) %>%
-  summarise(n_eligible = n(), .groups = "drop")
-
-all_students <- nwri_all %>%
-  filter(grade != "P") %>%
-  group_by(district) %>%
-  summarise(n_total = n(), .groups = "drop")
-
 # ---- LOST KIDS SUMMARY ----
 lost_kids_data <- lost_kids %>%
   count(DistrictName) %>%
@@ -222,20 +203,64 @@ lost_kids_data <- lost_kids %>%
   ) %>%
   ungroup()
 
-# ---- FINAL DF ----
-df <- all_students %>%
-  left_join(eligible_students,
-            by = c("district")) %>%
-  left_join(enrolled_students,
-            by = c("district" = "DistrictID")) |>
-  left_join(
-    MSID %>% select(DISTRICT, SCHOOL, DISTRICT_NAME, SCHOOL_NAME_LONG)%>%
-      distinct(DISTRICT,DISTRICT_NAME),
-    by = c("district" = "DISTRICT")
-  )
-
-  return(df)
+return(lost_kids_data)
 })
+
+
+datalist_processed <- purrr::pmap(
+  list(data_list, eligiblity_list, all_students_list,lost_kids),
+  function(x, y, z, a) {
+
+    # ---- CLEAN ENROLLED ----
+    nwri_enrolled <- x %>%
+      filter(!is.na(MappedDOESchool)) %>%
+      mutate(across(where(is.character), str_squish))
+  
+
+    # ---- CLEAN ELIGIBLE ----
+    nwri_eligible <- y %>%
+      mutate(across(where(is.character), str_squish)) %>%
+      mutate(grade = str_remove(grade, "^0+"))
+
+    # ---- CLEAN ALL STUDENTS ----
+    nwri_all <- z %>%
+      mutate(across(where(is.character), str_squish)) %>%
+      mutate(grade = str_remove(grade, "^0+"))
+
+    # ---- COUNT DATASETS ----
+    enrolled_students <- nwri_enrolled %>%
+      group_by(DistrictID) %>%
+      summarise(n_enrolled = n(), .groups = "drop")
+
+
+
+    eligible_students <- nwri_eligible %>%
+      filter(grade != "P") %>%
+      group_by(district) %>%
+      summarise(n_eligible = n(), .groups = "drop")
+
+    all_students <- nwri_all %>%
+      filter(grade != "P") %>%
+      group_by(district) %>%
+      summarise(n_total = n(), .groups = "drop")
+    
+
+
+    # ---- FINAL DF ----
+    df <- all_students %>%
+      left_join(eligible_students, by = "district") %>%
+      left_join(enrolled_students, by = c("district" = "DistrictID")) %>%
+      left_join(a, by =c("district" = "DISTRICT")) %>%
+      left_join(
+        MSID %>%
+          select(DISTRICT, SCHOOL, DISTRICT_NAME, SCHOOL_NAME_LONG) %>%
+          distinct(DISTRICT, DISTRICT_NAME),
+        by = c("district" = "DISTRICT")
+      ) %>%
+      rename(n_unmatched=n)
+    return(df)
+  }
+)
 
 
 
@@ -243,60 +268,45 @@ part2<-lapply(datalist_processed, function(x){
   
   
   data_calcs<-x |> mutate(n_enrolled = ifelse(is.na(n_enrolled), 0, n_enrolled),
-         n_eligible = ifelse(is.na(n_eligible), 0, n_eligible))  |>
+         n_eligible = ifelse(is.na(n_eligible), 0, n_eligible),
+          n_unmatched = ifelse(is.na(n_unmatched), 0, n_unmatched))  |>
   filter(!is.na(n_total)) |>
   mutate(perc_enroll = n_enrolled/n_total,
-         perc_eligible = n_eligible/n_total) |>
+         perc_eligible = n_eligible/n_total,
+         n_enroll_unmatchadd = n_enrolled + n_unmatched,
+         perc_enroll_unmatch = (n_unmatched+n_enrolled)/n_total) |>
   filter(!perc_enroll > 1) |>
   rename(DistrictID = district)
   
-  
-  #now make district-level tables
-district_level<-data_calcs |>
-   group_by(DISTRICT_NAME) |>
-   summarise(total_eligible_d= sum(n_eligible),
-            total_enroll_d = sum(n_enrolled),
-            total_district_pop = sum(n_total)) |>
-  ungroup() 
-return(district_level)
+return(data_calcs)
 })
 
-#read in non-match data as well
-nonmatchprepm1<-readRDS("data/pm1_2526/non_match_district2025-10-21.rds")
-nonmatchpostpm1<-readRDS("data/pm1_2526/non_match_district2025-11-17.rds")
 
 
-district_levelprePM1<-left_join(part2[[1]], nonmatchprepm1 |> select(DistrictName, n), by = c("DISTRICT_NAME"= "DistrictName")) |>
-  mutate(total_eligiblity = total_eligible_d/total_district_pop, 
-         total_enroll = total_enroll_d/total_eligible_d,
-         nonmatch_added_enroll = (total_enroll_d + n)/total_eligible_d,
-                  nonmatch_added_enroll_n = (total_enroll_d + n),
 
-         ) %>%
+district_levelprePM1<-part2[[1]] |>
    drop_na(DISTRICT_NAME) %>%
-  select(-c(total_district_pop,n)) |>
+  select(-c(n_total)) |>
     mutate(period = "prepm1")
 
-district_levelpostPM1<-left_join(part2[[2]], nonmatchpostpm1 |> select(DistrictName, n), by = c("DISTRICT_NAME"= "DistrictName")) |>
-  mutate(total_eligiblity = total_eligible_d/total_district_pop, 
-         total_enroll = total_enroll_d/total_eligible_d,
-         nonmatch_added_enroll = (total_enroll_d + n)/total_eligible_d,
-         nonmatch_added_enroll_n = (total_enroll_d + n),
-         ) %>%
+district_levelpostPM1<-part2[[2]] |>
    drop_na(DISTRICT_NAME) %>%
-  select(-c(total_district_pop,n)) |>
-  mutate(period = "postpm1")
+  select(-c(n_total)) |>
+    mutate(period = "postpm1")
 
 
 table<-rbind(district_levelprePM1, district_levelpostPM1) |>
-  pivot_wider(id_cols = DISTRICT_NAME,names_from = period,values_from = c(total_eligible_d, total_eligiblity, total_enroll_d, total_enroll,nonmatch_added_enroll)) |>
+  pivot_wider(id_cols = DISTRICT_NAME,names_from = period,values_from = c(perc_eligible, n_eligible, n_enrolled,n_enroll_unmatchadd,perc_enroll, perc_enroll_unmatch)) |>
   rowwise() |>
-  mutate(delta_eligibile_n = total_eligible_d_postpm1 - total_eligible_d_prepm1,
-         delta_eligibile_perc = ((total_eligiblity_postpm1 - total_eligiblity_prepm1)),
-         delta_enroll_n = (total_enroll_d_postpm1 - total_enroll_d_prepm1),
-         delta_enroll_perc = ((total_enroll_postpm1 - total_enroll_prepm1)),
-         delta_enroll_perc_scholastic = round((nonmatch_added_enroll_postpm1 - nonmatch_added_enroll_prepm1)*100)) |>
-  select(DISTRICT_NAME, delta_eligibile_n,delta_eligibile_perc,delta_enroll_n,delta_enroll_perc,delta_enroll_perc_scholastic)
+  mutate(delta_eligibile_n = n_eligible_postpm1 - n_eligible_prepm1,
+         delta_eligibile_perc = round(100*(perc_eligible_postpm1 - perc_eligible_prepm1),1),
+         delta_enroll_n = (n_enrolled_postpm1 - n_enrolled_prepm1),
+         delta_enroll_n_unmatch = n_enroll_unmatchadd_postpm1 - n_enroll_unmatchadd_prepm1, 
+         delta_enroll_perc = round(100*((perc_enroll_postpm1 - perc_enroll_prepm1)),1),
+         delta_enroll_perc_unmatch = round(100*(perc_enroll_unmatch_postpm1 -
+           perc_enroll_unmatch_prepm1),1)) |>
+  mutate(diff_unmatch = round((delta_enroll_perc_unmatch-delta_enroll_perc ),1)) |>
+  select(DISTRICT_NAME, delta_eligibile_n,delta_eligibile_perc,delta_enroll_n,delta_enroll_n_unmatch,delta_enroll_perc,diff_unmatch)
 
 
 
@@ -363,21 +373,83 @@ tbl <- reactable(
   table,
   theme = slate_change(centered = TRUE, header_font_size = 20, font_size = 20),
   columns = list(
+      DISTRICT_NAME = colDef( maxWidth = 220,
+      name = "DISTRICT NAME",
+      searchable = TRUE,
+      filterable = TRUE),
     
     delta_enroll_perc = colDef(
+      html = T, 
       align = "center",
-      name = "Change Enrolled PercentPoints",
+      name = "Change Enrolled<br>(Percent Points)",
       cell = data_bars(
         data = table,
-        fill_color = "cyan",
+        fill_color = wes_palette("Zissou1", 100, type = "continuous"),
         background = "#272b30",
         bar_height = 7,
         text_position = 'outside-end',
         text_color = "cyan",
-        round_edges = TRUE,
-        number_fmt = scales::label_percent(accuracy = 0.1)
-      )
+        round_edges = TRUE      )
     ),
+    
+    delta_eligibile_n = colDef(maxWidth = 200,
+      align = "center",
+      name = "Eligibility Change",
+      cell = color_tiles(
+        bold_text = TRUE,
+        opacity = 0.7,
+        brighten_text = FALSE,
+        text_color = "white",
+        data = table,
+        number_fmt = scales::comma
+      ),
+      format = colFormat(separators = TRUE)
+      ),
+    
+     delta_enroll_n_unmatch = colDef(maxWidth = 200,
+                                     html =T,
+      align = "center",
+      name = "Enrollment Change<br>w/ Unmatched",
+      cell = color_tiles(
+        bold_text = TRUE,
+        opacity = 0.7,
+        brighten_text = FALSE,
+        text_color = "white",
+        data = table,
+        number_fmt = scales::comma
+      ),
+      format = colFormat(separators = TRUE)
+      ),
+    
+     delta_enroll_n = colDef(maxWidth = 200,
+      align = "center",
+      name = "Enrollment Change",
+      cell = color_tiles(
+        bold_text = TRUE,
+        opacity = 0.7,
+        brighten_text = FALSE,
+        text_color = "white",
+        data = table,
+        number_fmt = scales::comma
+      ),
+      format = colFormat(separators = TRUE)
+      ),
+      
+    
+     diff_unmatch = colDef(
+       html =T,
+      align = "center",
+      name = "Impact of Unmatched",
+      cell = data_bars(
+        data = table,
+        fill_color = c("#1efffd"),
+        background = "#272b30",
+        bar_height = 7,
+        text_position = 'outside-end',
+        text_color = "cyan",
+        round_edges = TRUE      )
+    ),
+    
     
     delta_eligibile_perc = colDef(html = T,
       align = "center",
@@ -385,14 +457,12 @@ tbl <- reactable(
       headerStyle = list(whiteSpace = "normal"),
       cell = data_bars(
         data = table,
-        fill_color = "cyan",
+        fill_color = wes_palette("Zissou1", 100, type = "continuous"),
         background = "#272b30",
         bar_height = 7,
         text_position = 'outside-end',
         text_color = "cyan",
-        round_edges = TRUE,
-        number_fmt = scales::label_percent(accuracy = 0.1)
-      )
+        round_edges = TRUE      )
 
     )
   )#end of columns
