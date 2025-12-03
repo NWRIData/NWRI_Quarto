@@ -7,56 +7,34 @@ library(tidyr)
 
 # Establish date of the system for file labelling
 date <- Sys.Date()
+file_list<-list.files(here("reports", "Eligiblity_table_2526", "dropbox_data"))
+dates <- as.Date(gsub(".*_(\\d{8})\\.csv", "\\1", file_list), format = "%Y%m%d")
 
-# Path to "last processed" record
-last_processed_path <- here("reports", "Eligiblity_table_2526", "last_processed.txt")
+#identify most recent file
+latest_file <- file_list[which.max(dates)]
 
-# Read last processed filename if it exists
-last_processed <- if (file.exists(last_processed_path)) {
-  trimws(readLines(last_processed_path, warn = FALSE))
-} else {
-  NA_character_
-}
+#now load the most recent file
+file_list_mostrecent<-list.files(here("reports", "Eligiblity_table_2526","last_processed"))
 
-# If the old last_processed contains a full path, convert to basename
-if (!is.na(last_processed)) {
-  last_processed <- basename(last_processed)
-}
-
-cat("Last processed file recorded:", last_processed, "\n")
-
-# Specify the directory and list files
-dir_path <- here("reports", "Eligiblity_table_2526", "dropbox_data")
-files <- list.files(
-  dir_path,
-  pattern = "enrollments_\\d{8}\\.csv",
-  full.names = TRUE
+mostrecentrecorded <- readRDS(
+  here("reports", "Eligiblity_table_2526", "last_processed", "latest_processed_file.rds")
 )
 
-# Extract dates from filenames
-dates <- as.Date(gsub(".*_(\\d{8})\\.csv", "\\1", files), format = "%Y%m%d")
+cat("Latest file that was processed:", mostrecentrecorded, "\n")
+cat("Latest file downloaded from dropbox", latest_file, "\n")
 
-# Get the most recent file
-latest_file <- files[which.max(dates)]
-latest_file_base <- basename(latest_file)
-
-cat("Latest file based on filename date:", latest_file_base, "\n")
-
-# Skip processing if already processed
-if (!is.na(last_processed) && latest_file_base == last_processed) {
-  cat("No new data file found. Skipping processing.\n")
-  quit(save = "no")  # Exit the script early
+if(mostrecentrecorded == latest_file){
+  cat("File names match, ending script early")
+  quit(save = "no")
+}else{
+  cat("File names don't match, running script")
 }
 
-# Otherwise, update last processed record (store only basename)
-cat("Updating last processed file to:", latest_file_base, "\n")
-writeLines(latest_file_base, last_processed_path)
+#read in files
 
-# Continue with processing (read full path)
 cat("Reading data from:", latest_file, "\n")
-nwri_enrolled <- read.csv(latest_file, na.strings = c("NA", ""))
-dataapp <- read.csv(latest_file, na.strings = c("NA", ""))
-
+nwri_enrolled <- read.csv(here("reports", "Eligiblity_table_2526", "dropbox_data",latest_file),, na.strings = c("NA", ""))
+dataapp <- read.csv(here("reports", "Eligiblity_table_2526", "dropbox_data",latest_file),, na.strings = c("NA", ""))
 
 nwri_all<-readRDS("reports/Eligiblity_table_2526/base_data/nwri_all_table_11172025.rds")
 nwri_eligible<-readRDS("reports/Eligiblity_table_2526/base_data/nwri_eligible_table_11172025.rds")
@@ -190,4 +168,6 @@ enroll_heat_week1 <- enroll_heat_week %>%
 
 saveRDS(enroll_heat_week1, file =here("reports","Eligiblity_table_2526", "heatmapdataweekly",paste0("heat_mapweekly",date,".rds")))
 
-
+#save the most recent filename as RDS
+saveRDS(latest_file,
+        here("reports", "Eligiblity_table_2526", "last_processed", "latest_processed_file.rds"))

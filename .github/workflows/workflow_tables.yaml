@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      
+
   workflow_dispatch:
   schedule:
     - cron: '0 11 * 3-11 1-5'
@@ -19,7 +19,6 @@ jobs:
   # =========================================================
   download:
     runs-on: ubuntu-latest
-
     outputs:
       elig_file: ${{ steps.out.outputs.elig_file }}
       heat_file: ${{ steps.out.outputs.heat_file }}
@@ -54,38 +53,22 @@ jobs:
           path: ${{ steps.out.outputs.heat_file }}
           if-no-files-found: ignore
 
-
   # =========================================================
   # JOB 2 — PROCESS ELIGIBILITY TABLE
   # =========================================================
   process-eligibility:
     runs-on: ubuntu-latest
     needs: download
-
     outputs:
       final_table:    ${{ steps.out.outputs.final_table }}
       nonmatch:       ${{ steps.out.outputs.nonmatch }}
       weekly_heatmap: ${{ steps.out.outputs.weekly_heatmap }}
+      latest_file:    ${{ steps.out.outputs.latest_file }}
 
     steps:
       - uses: actions/checkout@v4
 
-      # ---------- check for artifact (dropbox-eligibility) ----------
-      - name: Check artifact dropbox-eligibility exists
-        id: check_dropbox_elig
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Checking for artifact: dropbox-eligibility"
-          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
-          if echo "$names" | grep -Fxq "dropbox-eligibility"; then
-            echo "found=true" >> $GITHUB_OUTPUT
-          else
-            echo "found=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download dropbox-eligibility (if present)
-        if: steps.check_dropbox_elig.outputs.found == 'true'
+      - name: Download dropbox-eligibility
         uses: actions/download-artifact@v4
         with:
           name: dropbox-eligibility
@@ -109,20 +92,23 @@ jobs:
         run: |
           final=$(ls -1t reports/Eligiblity_table_2526/data/final_table*.rds 2>/dev/null | head -n 1)
           nonmatch=$(ls -1t reports/Eligiblity_table_2526/nonmatch_data/non_match_district*.rds 2>/dev/null | head -n 1)
-          heat=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/heat_mapweekly*.rds 2>/dev/null | head -n 1)
+          weekly=$(ls -1t reports/Eligiblity_table_2526/heatmapdataweekly/heat_mapweekly*.rds 2>/dev/null | head -n 1)
+          latest=$(ls -1t reports/Eligiblity_table_2526/last_processed/latest_processed_file.rds 2>/dev/null | head -n 1)
 
           echo "final_table=$final" >> $GITHUB_OUTPUT
           echo "nonmatch=$nonmatch" >> $GITHUB_OUTPUT
-          echo "weekly_heatmap=$heat" >> $GITHUB_OUTPUT
+          echo "weekly_heatmap=$weekly" >> $GITHUB_OUTPUT
+          echo "latest_file=$latest" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:
           name: eligibility-processed
           path: |
-            reports/Eligiblity_table_2526/last_processed.txt
-            reports/enrollment_progress/data/
+            reports/Eligiblity_table_2526/data/
+            reports/Eligiblity_table_2526/nonmatch_data/
+            reports/Eligiblity_table_2526/heatmapdataweekly/
+            reports/Eligiblity_table_2526/last_processed/
           if-no-files-found: ignore
-
 
   # =========================================================
   # JOB 3 — PROCESS HEATMAPS
@@ -130,31 +116,16 @@ jobs:
   process-heatmap:
     runs-on: ubuntu-latest
     needs: download
-
     outputs:
       heatmap_data:  ${{ steps.out.outputs.data }}
       heatmap_week:  ${{ steps.out.outputs.week }}
       reactable_def: ${{ steps.out.outputs.react }}
+      latest_file:   ${{ steps.out.outputs.latest_file }}
 
     steps:
       - uses: actions/checkout@v4
 
-      # ---------- check for artifact (dropbox-heatmap) ----------
-      - name: Check artifact dropbox-heatmap exists
-        id: check_dropbox_heat
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Checking for artifact: dropbox-heatmap"
-          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
-          if echo "$names" | grep -Fxq "dropbox-heatmap"; then
-            echo "found=true" >> $GITHUB_OUTPUT
-          else
-            echo "found=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download dropbox-heatmap (if present)
-        if: steps.check_dropbox_heat.outputs.found == 'true'
+      - name: Download dropbox-heatmap
         uses: actions/download-artifact@v4
         with:
           name: dropbox-heatmap
@@ -176,23 +147,25 @@ jobs:
       - name: Capture outputs
         id: out
         run: |
-          d=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds 2>/dev/null | head -n 1)
-          w=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds 2>/dev/null | head -n 1)
-          r=$(ls -1t reports/heatmap_districts/reactable_element/*.rds 2>/dev/null | head -n 1)
+          data=$(ls -1t reports/heatmap_districts/heatmapdata/*.rds 2>/dev/null | head -n 1)
+          week=$(ls -1t reports/heatmap_districts/heatmapdataweekly/*.rds 2>/dev/null | head -n 1)
+          react=$(ls -1t reports/heatmap_districts/reactable_element/*.rds 2>/dev/null | head -n 1)
+          latest=$(ls -1t reports/heatmap_districts/last_processed/latest_file.rds 2>/dev/null | head -n 1)
 
-          echo "data=$d"  >> $GITHUB_OUTPUT
-          echo "week=$w"  >> $GITHUB_OUTPUT
-          echo "react=$r" >> $GITHUB_OUTPUT
+          echo "data=$data"  >> $GITHUB_OUTPUT
+          echo "week=$week"  >> $GITHUB_OUTPUT
+          echo "react=$react" >> $GITHUB_OUTPUT
+          echo "latest_file=$latest" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:
-          name: heatmap-data
+          name: heatmap-processed
           path: |
-            ${{ steps.out.outputs.data }}
-            ${{ steps.out.outputs.week }}
-            ${{ steps.out.outputs.react }}
+            reports/heatmap_districts/heatmapdata/
+            reports/heatmap_districts/heatmapdataweekly/
+            reports/heatmap_districts/reactable_element/
+            reports/heatmap_districts/last_processed/
           if-no-files-found: ignore
-
 
   # =========================================================
   # JOB 4 — RENDER + COMMIT EVERYTHING
@@ -208,129 +181,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ---------- check & download: dropbox-eligibility ----------
-      - name: Check artifact dropbox-eligibility exists
-        id: check_dropbox_elig_render
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Checking for artifact: dropbox-eligibility"
-          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
-          if echo "$names" | grep -Fxq "dropbox-eligibility"; then
-            echo "found=true" >> $GITHUB_OUTPUT
-          else
-            echo "found=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download dropbox-eligibility (if present)
-        if: steps.check_dropbox_elig_render.outputs.found == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: dropbox-eligibility
-          path: temp/eligibility/
-
-      # ---------- check & download: eligibility-data ----------
-      - name: Check artifact eligibility-data exists
-        id: check_elig_data_render
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Checking for artifact: eligibility-data"
-          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
-          if echo "$names" | grep -Fxq "eligibility-data"; then
-            echo "found=true" >> $GITHUB_OUTPUT
-          else
-            echo "found=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download eligibility-data (if present)
-        if: steps.check_elig_data_render.outputs.found == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: eligibility-data
-          path: temp/eligibility-data/
-
-      # ---------- check & download: dropbox-heatmap ----------
-      - name: Check artifact dropbox-heatmap exists (render)
-        id: check_dropbox_heat_render
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Checking for artifact: dropbox-heatmap"
-          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
-          if echo "$names" | grep -Fxq "dropbox-heatmap"; then
-            echo "found=true" >> $GITHUB_OUTPUT
-          else
-            echo "found=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download dropbox-heatmap (if present, render)
-        if: steps.check_dropbox_heat_render.outputs.found == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: dropbox-heatmap
-          path: temp/heatmap/
-
-      # ---------- check & download: heatmap-data ----------
-      - name: Check artifact heatmap-data exists
-        id: check_heatmap_data_render
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Checking for artifact: heatmap-data"
-          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
-          if echo "$names" | grep -Fxq "heatmap-data"; then
-            echo "found=true" >> $GITHUB_OUTPUT
-          else
-            echo "found=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download heatmap-data (if present)
-        if: steps.check_heatmap_data_render.outputs.found == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: heatmap-data
-          path: temp/heatmap-data/
-
-      # ---------- check & download: eligibility-processed ----------
-      - name: Check artifact eligibility-processed exists
-        id: check_elig_processed_render
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Checking for artifact: eligibility-processed"
-          names=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' 2>/dev/null || true)
-          if echo "$names" | grep -Fxq "eligibility-processed"; then
-            echo "found=true" >> $GITHUB_OUTPUT
-          else
-            echo "found=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download eligibility-processed (if present)
-        if: steps.check_elig_processed_render.outputs.found == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: eligibility-processed
-          path: temp/eligibility-processed/
-
-      - name: Merge artifact files
+      - name: Merge all artifacts
         run: |
           mkdir -p reports/Eligiblity_table_2526/dropbox_data
           mkdir -p reports/heatmap_districts/dropbox_data
           mkdir -p reports/Eligiblity_table_2526/data
           mkdir -p reports/Eligiblity_table_2526/nonmatch_data
           mkdir -p reports/Eligiblity_table_2526/heatmapdataweekly
+          mkdir -p reports/Eligiblity_table_2526/last_processed
           mkdir -p reports/heatmap_districts/heatmapdata
           mkdir -p reports/heatmap_districts/heatmapdataweekly
           mkdir -p reports/heatmap_districts/reactable_element
+          mkdir -p reports/heatmap_districts/last_processed
           mkdir -p reports/enrollment_progress/data
 
-          cp temp/eligibility/*.csv reports/Eligiblity_table_2526/dropbox_data/ 2>/dev/null || true
-          cp temp/eligibility-data/*.rds reports/Eligiblity_table_2526/ -R 2>/dev/null || true
-          cp temp/heatmap/*.csv reports/heatmap_districts/dropbox_data/ 2>/dev/null || true
-          cp temp/heatmap-data/*.rds reports/heatmap_districts/ -R 2>/dev/null || true
-          cp temp/eligibility-processed/last_processed.txt reports/Eligiblity_table_2526/ 2>/dev/null || true
-          cp -r temp/eligibility-processed/data/* reports/enrollment_progress/data/ 2>/dev/null || true
+          cp -r temp/eligibility-processed/* reports/Eligiblity_table_2526/ 2>/dev/null || true
+          cp -r temp/heatmap-processed/* reports/heatmap_districts/ 2>/dev/null || true
 
       - uses: r-lib/actions/setup-r@v2
       - uses: quarto-dev/quarto-actions/setup@v2
@@ -344,7 +210,7 @@ jobs:
         run: |
           Rscript -e 'install.packages(c(
             "tidyr","stringr","lubridate","dplyr","scales","scico","viridis",
-            "htmlwidgets","htmltools","reactable","reactablefmtr","wesanderson","RColorBrewer"
+            "htmlwidgets","htmltools","reactable","reactablefmtr","wesanderson","RColorBrewer","here"
           ), repos="https://cloud.r-project.org")'
 
       - name: Render Quarto
@@ -357,11 +223,9 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Pull remote main if available (fast-forward only) to avoid accidental divergence
           git fetch origin main
           git merge --ff-only origin/main || echo "Nothing to merge"
 
-          # Stage everything (generated files)
           git add -A || true
 
           if git diff --cached --quiet; then
