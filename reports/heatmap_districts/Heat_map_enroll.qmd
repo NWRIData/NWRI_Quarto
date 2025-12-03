@@ -15,7 +15,6 @@ execute:
   freeze: false
 ---
 
-
 ```{=html}
 <script>
   const password = prompt("Enter password");
@@ -137,7 +136,6 @@ get_latest_rds <- function(dir_path, verbose = TRUE, return_name = FALSE) {
   }
 }
 
-last_processed<-readLines("dropbox_data/last_processed.txt")
 
 Enrollment_heat <- get_latest_rds("heatmapdata/")
 enroll_heat_week <- get_latest_rds("heatmapdataweekly/")
@@ -483,10 +481,6 @@ knitr::kable(
   caption = "Files used to generate this report"
 )
 
-knitr::kable(
-  data.frame(
-    Raw_File_Used = c(last_processed)
-  ))
 
 
 
