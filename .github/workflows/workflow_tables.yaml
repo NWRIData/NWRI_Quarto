@@ -188,9 +188,11 @@ jobs:
           mkdir -p reports/Eligiblity_table_2526/data
           mkdir -p reports/Eligiblity_table_2526/nonmatch_data
           mkdir -p reports/Eligiblity_table_2526/heatmapdataweekly
+          mkdir -p reports/Eligiblity_table_2526/last_processed
           mkdir -p reports/heatmap_districts/heatmapdata
           mkdir -p reports/heatmap_districts/heatmapdataweekly
           mkdir -p reports/heatmap_districts/reactable_element
+          mkdir -p reports/heatmap_districts/last_processed
           mkdir -p reports/enrollment_progress/data
 
           cp -r temp/eligibility-processed/* reports/Eligiblity_table_2526/ 2>/dev/null || true
