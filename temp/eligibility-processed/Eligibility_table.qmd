@@ -1,0 +1,1028 @@
+---
+title: "<span style='font-family:Poppins, sans-serif; font-size:18px; font-style:italic;'>Table last updated: `r format(Sys.Date(), '%B %d, %Y')`</span>"
+output-dir: ../../docs/
+format:
+  html:
+    self-contained: false
+    toc: false
+    page-layout: custom
+    css: styles.css
+editor: visual
+execute:
+  cache: false
+  echo: false
+  freeze: false
+---
+
+```{=html}
+<script>
+  const password = prompt("Enter password");
+  if (password !== "NWRI") {
+    document.body.innerHTML = "Access denied";
+  }
+</script>
+```
+
+
+```{=html}
+<style>
+/* --- Wrapper bar --- */
+.ticker-wrap { 
+  width: 100%; 
+  overflow: hidden; 
+  background: #111;        
+  padding: 8px 0; 
+  display: flex;
+  flex-wrap: nowrap; 
+  align-items: center;
+  position: relative;       /* allow z-index inside */
+  z-index: 1;               /* base level */
+}
+
+/* --- Label that stays fixed --- */
+.ticker-label {
+  flex: 0 0 auto;
+  padding: 0.3rem 1rem;
+  margin-right: 0.5rem;
+  background: #333;
+  color: #fff;
+  font-family: monospace;
+  font-size: 1.1em;
+  border-radius: 4px;
+  white-space: nowrap;
+  position: relative;       /* allow z-index */
+  z-index: 10;              /* sit above scrolling ticker */
+}
+
+/* --- Scrolling ticker --- */
+.ticker { 
+  display: flex; 
+  flex: 1;                  /* take remaining width */
+  overflow: hidden;
+  position: relative;
+  z-index: 5;               /* below label */
+}
+
+.ticker-move { 
+  will-change: transform;          /* hint GPU for smoother animation */
+  transform: translate3d(0,0,0);   /* force GPU acceleration */
+  display: flex; 
+  flex-shrink: 0; 
+  animation: ticker-move 400s linear infinite;
+}
+
+.ticker-wrap:hover .ticker-move {
+  animation-play-state: paused;
+}
+
+/* --- Ticker items --- */
+.item { 
+  will-change: transform;
+  flex: 0 0 auto; 
+  margin-right: 12rem; 
+  font-family: 'Poppins', sans-serif;
+  font-weight: bold;
+  font-size: 1.5em; 
+  white-space: nowrap;
+  opacity: 1;                
+  mix-blend-mode: normal;    
+  position: relative;
+  z-index: 1;               /* ensure below label */
+}
+
+/* Colors */
+.item.pos { color: #4CFF4C; }
+.item.neg { color: #fcba03; }
+.item.zero { color: #CCCCCC; }
+
+@keyframes ticker-move {
+  /* This will make the content scroll from right to left */
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-100%, 0, 0); }
+  /* Adjust the 'to' value based on whether the content is duplicated for a seamless loop */
+}
+
+</style>
+
+```
+
+```{r setup, include=FALSE}
+
+require(dplyr)
+require(reactable)
+require(reactablefmtr)
+require(RColorBrewer)
+require(viridis)
+require(wesanderson)
+require(scales)
+require(htmlwidgets)
+require(htmltools)
+require(stringr)
+require(lubridate)
+require(tidyr)
+```
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
+
+get_latest_rds <- function(dir_path, verbose = TRUE) {
+  rds_files <- list.files(path = dir_path, pattern = "\\.rds$", full.names = TRUE)
+  
+  if (length(rds_files) == 0) {
+    if (verbose) cat("No .rds files found in", dir_path, "\n")
+    return(NULL)
+  }
+  
+  file_dates <- sub(".*?(\\d{4}-\\d{2}-\\d{1,2})\\.rds$", "\\1", basename(rds_files))
+  file_dates <- as.Date(file_dates, format = "%Y-%m-%d")
+  
+  latest_file <- rds_files[which.max(file_dates)]
+  
+  if (verbose) cat("Loaded file from:", latest_file, "\n")
+  readRDS(latest_file)
+}
+
+Gradeleveltabs<-get_latest_rds("data/")
+enroll_heat_week <- get_latest_rds("heatmapdataweekly/")
+nonmatch_data<-get_latest_rds("nonmatch_data/")
+app_data<-readRDS("data/app_data.rds")
+
+#make a list of schools under average enrollment but over average eligibility
+#change any NAs for enrollment or eligible numbers to 0 and
+#remove any schools where we have no data on total enrollment
+Gradeleveltabs<-Gradeleveltabs |>
+  mutate(n_enrolled = ifelse(is.na(n_enrolled), 0, n_enrolled),
+         n_eligible = ifelse(is.na(n_eligible), 0, n_eligible))  |>
+  filter(!is.na(n_total)) |>
+  mutate(perc_enroll = n_enrolled/n_total,
+         perc_eligible = n_eligible/n_total) |>
+  filter(!perc_enroll > 1) |>
+  rename(DistrictID = district,
+         SchoolID = school)
+
+orangefilter = Gradeleveltabs |>
+  group_by(DistrictID, SchoolID) |>
+  summarise(n_total = sum(n_total),
+            n_eligible = sum(n_eligible),
+            n_enrolled = sum(n_enrolled)) |>
+  ungroup() |>
+  mutate(perc_enroll = n_enrolled/n_total,
+         perc_eligible = n_eligible/n_total)
+
+
+# Step 1: Build summary table (1 row per school)
+
+
+school_summary2 <- Gradeleveltabs |>
+  group_by(DistrictID, SchoolID,DISTRICT_NAME, SCHOOL_NAME_LONG) |>
+  summarize(
+            total_n_eligible = sum(n_eligible),
+            total_n_enroll = sum(n_enrolled),
+            total_school_pop = sum(n_total),
+            avg_perc_eligible = total_n_eligible/total_school_pop,
+            avg_perc_enroll = total_n_enroll/ total_school_pop,
+            .groups = "drop") |>
+  mutate(priorit_col = case_when(
+    avg_perc_enroll <  mean(orangefilter$perc_enroll, na.rm = T) &
+           avg_perc_eligible > mean(orangefilter$perc_eligible, na.rm = T) ~ "orange",
+    TRUE ~ 'grey'
+  )) |>
+  relocate(avg_perc_eligible, .after =total_n_eligible) |>
+  relocate(avg_perc_enroll, .after = avg_perc_eligible) |>
+  mutate('School Type' = priorit_col)  |>
+  select(-total_school_pop)
+
+
+
+#calculate enrollment and elibility percentages using totals rather then
+# averaging across schools per district 
+district_level<-Gradeleveltabs |>
+   group_by(DISTRICT_NAME) |>
+   summarise(total_eligible_d= sum(n_eligible),
+            total_enroll_d = sum(n_enrolled),
+            total_district_pop = sum(n_total)) |>
+  ungroup() 
+
+district_level<-left_join(district_level, nonmatch_data |> select(DistrictName, n), by = c("DISTRICT_NAME"= "DistrictName")) |>
+  mutate(total_eligiblity = total_eligible_d/total_district_pop, 
+         total_enroll = total_enroll_d/total_eligible_d,
+         nonmatch_added_enroll = (total_enroll_d + n)/total_eligible_d
+         ) %>%
+   drop_na(DISTRICT_NAME) %>%
+  select(-c(total_enroll_d,total_district_pop,n))
+             
+#add nonmatched students as a second column
+
+left_join(district_level, nonmatch_data |> select(DistrictName, n), by = c("DISTRICT_NAME"= "DistrictName")) %>%
+  mutate()
+
+
+```
+
+**Table guide**:
+
+* The "Enrolled % (Scholastic version)" calculates the percent of enrolled New Worlds Reading Students (out of all eligible students) including non-matched but enrolled students. This percentage should match (or very closely match) the percentage provided in the Scholastic Dashboard. 
+* Non-matched but enrolled students are students who were matched to DOE data and enrolled but were later unmatched because a better matching student applied. These non-matched students still receive books. For more info see [here](/further_details.html). 
+* The "Enrolled %" calculates the percent of enrolled New Worlds Reading Students without including non-matched enrolled students.
+* Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+
+# extract columns for most recent weeks
+recent_weeks <- enroll_heat_week[, c(1, ncol(enroll_heat_week)-3, ncol(enroll_heat_week)-2)]
+
+# rename for clarity
+names(recent_weeks)[2:3] <- c("two_weeks", "last_week")
+
+# compute raw + percent diffs
+recent_weeks$raw_diff  <- recent_weeks$last_week - recent_weeks$two_weeks
+recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks$two_weeks, 1)
+
+# handle special cases
+recent_weeks$perc_diff <- ifelse(recent_weeks$raw_diff == 0, 0, recent_weeks$perc_diff)
+recent_weeks$perc_diff <- ifelse(is.infinite(recent_weeks$perc_diff), NA, recent_weeks$perc_diff)
+
+recent_weeks <- data.frame(
+  ticker     = recent_weeks$DISTRICT_NAME,
+  two_week  = recent_weeks$two_weeks,
+  last_week  = recent_weeks$last_week,
+  raw_diff   = recent_weeks$raw_diff,
+  perc_diff  = recent_weeks$perc_diff
+)
+
+recent_weeks <- recent_weeks |> drop_na(perc_diff)
+
+# add arrows + descriptive phrasing
+recent_weeks$change_text <- ifelse(
+  recent_weeks$raw_diff > 0,
+  paste0("↑ Last week: ", recent_weeks$last_week, " enrollments (Two weeks ago: ", recent_weeks$two_week,")"),
+  ifelse(
+    recent_weeks$raw_diff < 0,
+    paste0("↓ Last week: ", recent_weeks$last_week, " enrollments (Two weeks ago: ", recent_weeks$two_week,")"),
+    paste0("→ Last week: ", recent_weeks$last_week, " enrollments (same as two weeks ago)")
+  )
+)
+
+# build ticker items
+ticker_items <- paste0(
+  "<div class='item ",
+  ifelse(recent_weeks$raw_diff > 0, "pos",
+         ifelse(recent_weeks$raw_diff < 0, "neg", "zero")),
+  "'>",
+  recent_weeks$ticker, ": ",
+  recent_weeks$change_text,
+  "</div>",
+  collapse = ""
+)
+
+
+```
+
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+
+ticker <- HTML(paste0('
+<div class="ticker-wrap">
+  <div class="ticker-label">Enrollments last two weeks:</div>
+  <div class="ticker">
+    <div class="ticker-move">
+      ', ticker_items, '
+    </div>
+  </div>
+</div>
+'))
+```
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+
+font_size = 15
+font_color = "#aaaaaa"
+header_font_size = 16
+header_font_color = "#97999b"
+cell_padding = 6
+centered = FALSE
+#now create a theme for the table
+slate_change<-function (font_size = 15, font_color = "#aaaaaa", header_font_size = 16, 
+    header_font_color = "#97999b", cell_padding = 6, centered = FALSE, backcolor = "#272b30",
+    borderColor2 = "#272b30") 
+{
+    if (!is.logical(centered)) {
+        stop("`centered` must be TRUE or FALSE")
+    }
+    if (centered == TRUE) {
+        centered_content = list(display = "flex", flexDirection = "column", 
+            justifyContent = "center")
+    }
+    else {
+        centered_content = NULL
+    }
+    reactableTheme(cellStyle = centered_content, color = font_color, 
+        backgroundColor = backcolor, borderColor = borderColor2, 
+        borderWidth = "1px", stripedColor = "#464a4d", highlightColor = "#464a4d", 
+        cellPadding = cell_padding, tableStyle = list(fontSize = font_size), 
+        headerStyle = list(borderWidth = "2px", backgroundColor = backcolor, 
+            color = header_font_color, transitionDuration = "0.5s", 
+            `&:hover[aria-sort]` = list(backgroundColor = "#141516", 
+                color = "#ffffff"), `&[aria-sort='ascending'], &[aria-sort='descending']` = list(backgroundColor = "#141516", 
+                color = "#ffffff"), fontSize = header_font_size), 
+        groupHeaderStyle = list(`&:not(:empty)` = list(color = font_color, 
+            fontSize = header_font_size), `&:hover` = list(fontWeight = "bold", 
+            transitionDuration = "1s", transitionTimingFunction = "ease-out", 
+            color = "#ffffff")), searchInputStyle = list(backgroundColor = "#ffffff", 
+            color = "#aaaaaa", borderColor = "#dfe3e7", `&:focus` = list(color = "#aaaaaa")), 
+        inputStyle = list(backgroundColor = "#ffffff", color = "#aaaaaa"), 
+        rowSelectedStyle = list(backgroundColor = "#181a1c", 
+            color = "#ffffff"), selectStyle = list(backgroundColor = "#41464c", 
+            color = "#ffffff", borderColor = "#ffffff", outlineColor = "#ffffff", 
+            `&:hover` = list(backgroundColor = "#17191b", color = "#ffffff")), 
+        pageButtonStyle = list(backgroundColor = "#41464c", color = "#ffffff", 
+            `&:hover` = list(backgroundColor = "#17191b", color = "#ffffff")), 
+        pageButtonHoverStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"), pageButtonActiveStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"), pageButtonCurrentStyle = list(backgroundColor = "#17191b", 
+            color = "#ffffff"))
+}
+
+#create custom filter for multiple values/strings
+dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
+  function(values, name) {
+    dataListId <- sprintf("%s-%s-list", tableId, name)
+    tagList(
+      tags$input(
+        type = "text",
+        list = dataListId,
+        oninput = sprintf(
+          "Reactable.setFilter('%s', '%s', event.target.value || undefined)",
+          tableId, name
+        ),
+        "aria-label" = sprintf("Filter %s", name),
+        style = style
+      ),
+      tags$datalist(
+        id = dataListId,
+        lapply(unique(values), function(value) tags$option(value = value))
+      )
+    )
+  }
+}
+```
+
+
+```{=html}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+```
+
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+#this is the main table
+tbl <- reactable(
+  # General table options
+  wrap = TRUE,
+  defaultPageSize = 100,
+  defaultSorted = 'total_eligible_d',
+  defaultSortOrder = "desc",
+  elementId = "school-table", 
+  highlight = TRUE,
+  district_level,
+  theme = slate_change(centered = TRUE, header_font_size = 20, font_size = 20),
+  onClick = "expand",
+
+  # -----------------------------
+  # Columns for district-level table
+  # -----------------------------
+  columns = list(
+    
+    # District name column
+    DISTRICT_NAME = colDef(
+      name = "DISTRICT NAME",
+      searchable = TRUE,
+      filterable = TRUE,
+      filterInput = dataListFilter("school-table"),
+      filterMethod = JS("
+        function(rows, columnId, filterValue) {
+          if (!filterValue) return rows;
+          const terms = filterValue.toLowerCase().split(',').map(t => t.trim());
+          return rows.filter(row => {
+            const cell = row.values[columnId].toLowerCase();
+            return terms.some(term => cell.includes(term));
+          });
+        }
+      ")
+    ),
+
+    # enrollment percentage by district
+    total_enroll = colDef(
+      align = "center",
+      name = "Enrolled %",
+      cell = data_bars(
+        data = district_level,
+        fill_color = "cyan",
+        background = "#272b30",
+        bar_height = 7,
+        text_position = 'outside-end',
+        text_color = "cyan",
+        round_edges = TRUE,
+        number_fmt = scales::label_percent(accuracy = 0.1)
+      ),
+      filterable = TRUE,
+      filterMethod = htmlwidgets::JS("
+        function(rows, columnId, filterValue) {
+          return rows.filter(function(row) {
+            const value = row.values[columnId];
+            return value >= filterValue.min && value <= filterValue.max;
+          });
+        }
+      "),
+      filterInput = function(values, name) {
+        # Custom slider input for filtering percentages
+        min_val <- floor(min(values, na.rm = TRUE) * 100)
+        max_val <- ceiling(max(values, na.rm = TRUE) * 100)
+        id_min <- paste0('min-', name)
+        id_max <- paste0('max-', name)
+        label_id <- paste0('label-', name)
+
+        htmltools::tags$div(
+          htmltools::tags$span(id = label_id, paste0(min_val, "% – ", max_val, "%")),
+          htmltools::tags$input(
+            id = id_min,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = min_val,
+            step = 1,
+            oninput = sprintf("
+              const min = parseFloat(this.value);
+              const max = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_max, label_id, name),
+            style = "accent-color: #3C8EAB; background-color: #9a905d; width: 100%; margin-bottom: 4px;"
+          ),
+          htmltools::tags$input(
+            id = id_max,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = max_val,
+            step = 1,
+            oninput = sprintf("
+              const max = parseFloat(this.value);
+              const min = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_min, label_id, name),
+            style = "accent-color: #2883AD; background-color: #9a905d; width: 100%;"
+          )
+        )
+      }
+    ),
+    
+     # enrollment percentage including nonmatched students by district
+    nonmatch_added_enroll = colDef(
+      align = "center",
+      name = "Enrolled % (Scholastic version)",
+      cell = data_bars(
+        data = district_level,
+        fill_color = "cyan",
+        background = "#272b30",
+        bar_height = 7,
+        text_position = 'outside-end',
+        text_color = "cyan",
+        round_edges = TRUE,
+        number_fmt = scales::label_percent(accuracy = 0.1)
+      ),
+      filterable = TRUE,
+      filterMethod = htmlwidgets::JS("
+        function(rows, columnId, filterValue) {
+          return rows.filter(function(row) {
+            const value = row.values[columnId];
+            return value >= filterValue.min && value <= filterValue.max;
+          });
+        }
+      "),
+      filterInput = function(values, name) {
+        # Custom slider input for filtering percentages
+        min_val <- floor(min(values, na.rm = TRUE) * 100)
+        max_val <- ceiling(max(values, na.rm = TRUE) * 100)
+        id_min <- paste0('min-', name)
+        id_max <- paste0('max-', name)
+        label_id <- paste0('label-', name)
+
+        htmltools::tags$div(
+          htmltools::tags$span(id = label_id, paste0(min_val, "% – ", max_val, "%")),
+          htmltools::tags$input(
+            id = id_min,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = min_val,
+            step = 1,
+            oninput = sprintf("
+              const min = parseFloat(this.value);
+              const max = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_max, label_id, name),
+            style = "accent-color: #3C8EAB; background-color: #9a905d; width: 100%; margin-bottom: 4px;"
+          ),
+          htmltools::tags$input(
+            id = id_max,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = max_val,
+            step = 1,
+            oninput = sprintf("
+              const max = parseFloat(this.value);
+              const min = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_min, label_id, name),
+            style = "accent-color: #2883AD; background-color: #9a905d; width: 100%;"
+          )
+        )
+      }
+    ),
+
+    # Average eligibility percentage by district
+    total_eligiblity = colDef(
+      align = "center",
+      name = "Eligible %",
+      format = colFormat(digits = 1, percent = TRUE),
+      style = list(color = "white", fontWeight = "bold"),
+      filterable = TRUE,
+      filterMethod = htmlwidgets::JS("
+        function(rows, columnId, filterValue) {
+          return rows.filter(function(row) {
+            const value = row.values[columnId];
+            return value >= filterValue.min && value <= filterValue.max;
+          });
+        }
+      "),
+      filterInput = function(values, name) {
+        # Slider input for eligibility percentage
+        min_val <- floor(min(values, na.rm = TRUE) * 100)
+        max_val <- ceiling(max(values, na.rm = TRUE) * 100)
+        id_min <- paste0('min-', name)
+        id_max <- paste0('max-', name)
+        label_id <- paste0('label-', name)
+
+        htmltools::tags$div(
+          htmltools::tags$span(id = label_id, paste0(min_val, "% – ", max_val, "%")),
+          htmltools::tags$input(
+            id = id_min,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = min_val,
+            step = 1,
+            oninput = sprintf("
+              const min = parseFloat(this.value);
+              const max = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_max, label_id, name),
+            style = "width: 100%; margin-bottom: 4px;"
+          ),
+          htmltools::tags$input(
+            id = id_max,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = max_val,
+            step = 1,
+            oninput = sprintf("
+              const max = parseFloat(this.value);
+              const min = parseFloat(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+              Reactable.setFilter('school-table', '%s', { min: min / 100, max: max / 100 });
+            ", id_min, label_id, name),
+            style = "width: 100%;"
+          )
+        )
+      }
+    ),
+
+    # Total eligible students by district
+    total_eligible_d = colDef(
+      align = "center",
+      name = "Eligible Students",
+      cell = color_tiles(
+        bold_text = TRUE,
+        opacity = 0.7,
+        brighten_text = FALSE,
+        text_color = "white",
+        data = district_level,
+        colors = wes_palette("Zissou1", 100, type = "continuous"),
+        number_fmt = scales::comma
+      ),
+      format = colFormat(separators = TRUE),
+      filterable = TRUE,
+      filterMethod = htmlwidgets::JS("
+        function(rows, columnId, filterValue) {
+          return rows.filter(function(row) {
+            const value = row.values[columnId];
+            return value >= filterValue.min && value <= filterValue.max;
+          });
+        }
+      "),
+      filterInput = function(values, name) {
+        # Slider input for total eligible students
+        min_val <- floor(min(values, na.rm = TRUE))
+        max_val <- ceiling(max(values, na.rm = TRUE))
+        id_min <- paste0('min-', name)
+        id_max <- paste0('max-', name)
+        label_id <- paste0('label-', name)
+
+        htmltools::tags$div(
+          htmltools::tags$span(
+            id = label_id,
+            paste0(format(min_val, big.mark = ","), " – ", format(max_val, big.mark = ","))
+          ),
+          htmltools::tags$input(
+            id = id_min,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = min_val,
+            step = 1,
+            oninput = sprintf("
+              const min = parseInt(this.value);
+              const max = parseInt(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min.toLocaleString() + ' – ' + max.toLocaleString();
+              Reactable.setFilter('school-table', '%s', { min: min, max: max });
+            ", id_max, label_id, name),
+            style = "width: 100%; margin-bottom: 4px;"
+          ),
+          htmltools::tags$input(
+            id = id_max,
+            type = "range",
+            min = min_val,
+            max = max_val,
+            value = max_val,
+            step = 1,
+            oninput = sprintf("
+              const max = parseInt(this.value);
+              const min = parseInt(document.getElementById('%s').value);
+              document.getElementById('%s').innerText = min.toLocaleString() + ' – ' + max.toLocaleString();
+              Reactable.setFilter('school-table', '%s', { min: min, max: max });
+            ", id_min, label_id, name),
+            style = "width: 100%;"
+          )
+        )
+      }
+    )
+  ), # end of district-level columns list
+
+  # -----------------------------
+  # Nested table: Schools within a district
+  # -----------------------------
+  details = function(index) {
+    district <- district_level$DISTRICT_NAME[index]
+    detail_data <- school_summary2 |> 
+      filter(DISTRICT_NAME == district) |>
+      select(-c("School Type","SchoolID","DISTRICT_NAME"))
+
+    reactable(
+     
+      pagination = FALSE,
+      defaultSorted = 'total_n_eligible',
+      defaultSortOrder = "desc",
+      elementId = "school_nested-table",
+      theme = slate_change(centered = TRUE, header_font_size = 18,
+                           backcolor = "#49515a",borderColor2 = "#49515a", font_size = 18),
+      wrap = TRUE,
+      detail_data,
+      fullWidth = TRUE,
+      style = list(width = "100%"),
+      defaultColDef = colDef(align = "center"),
+
+      # Columns for nested school-level table
+      columns = list(
+        DistrictID = colDef(show = FALSE),
+        priorit_col = colDef(show = FALSE),
+
+        # School name
+        SCHOOL_NAME_LONG = colDef(
+          name = "School",
+          searchable = TRUE,
+          filterable = TRUE,
+          cell = color_tiles(data = detail_data, color_ref = 'priorit_col')
+        ),
+
+        # Total eligible students by school
+        total_n_eligible = colDef(
+          sortable = TRUE,
+          name = "Eligible Students",
+          aggregate = "sum",
+          format = colFormat(separators = TRUE),
+          filterable = TRUE,
+          filterMethod = htmlwidgets::JS("
+            function(rows, columnId, filterValue) {
+              return rows.filter(function(row) {
+                const value = row.values[columnId];
+                return value >= filterValue.min && value <= filterValue.max;
+              });
+            }
+          "),
+          filterInput = function(values, name) {
+            min_val <- floor(min(values, na.rm = TRUE))
+            max_val <- ceiling(max(values, na.rm = TRUE))
+            id_min <- paste0('min-', name)
+            id_max <- paste0('max-', name)
+            label_id <- paste0('label-', name)
+
+            htmltools::tags$div(
+              htmltools::tags$span(id = label_id, paste0(min_val, " – ", max_val)),
+              htmltools::tags$input(
+                id = id_min,
+                type = "range",
+                min = min_val,
+                max = max_val,
+                value = min_val,
+                step = 1,
+                oninput = sprintf("
+                  const min = parseInt(this.value);
+                  const max = parseInt(document.getElementById('%s').value);
+                  document.getElementById('%s').innerText = min + ' – ' + max;
+                  Reactable.setFilter('school_nested-table', '%s', { min: min, max: max });
+                ", id_max, label_id, name),
+                style = "accent-color: #3C8EAB; background-color: #9a905d; width: 100%; margin-bottom: 4px;"
+              ),
+              htmltools::tags$input(
+                id = id_max,
+                type = "range",
+                min = min_val,
+                max = max_val,
+                value = max_val,
+                step = 1,
+                oninput = sprintf("
+                  const max = parseInt(this.value);
+                  const min = parseInt(document.getElementById('%s').value);
+                  document.getElementById('%s').innerText = min + ' – ' + max;
+                  Reactable.setFilter('school_nested-table', '%s', { min: min, max: max });
+                ", id_min, label_id, name),
+                style = "accent-color: #3C8EAB; background-color: #9a905d;width: 100%;"
+              )
+            )
+          }
+        ),
+
+        # Percent eligible by school
+        avg_perc_eligible = colDef(
+          sortable = TRUE,
+          name = "Eligible %",
+          format = colFormat(digits = 1, percent = TRUE),
+          filterable = TRUE,
+          filterMethod = htmlwidgets::JS("
+            function(rows, columnId, filterValue) {
+              return rows.filter(function(row) {
+                const value = row.values[columnId] * 100;
+                return value >= filterValue.min && value <= filterValue.max;
+              });
+            }
+          "),
+          filterInput = function(values, name) {
+            min_val <- floor(min(values, na.rm = TRUE) * 100)
+            max_val <- ceiling(max(values, na.rm = TRUE) * 100)
+            id_min <- paste0('min-', name)
+            id_max <- paste0('max-', name)
+            label_id <- paste0('label-', name)
+
+            htmltools::tags$div(
+              htmltools::tags$span(id = label_id, paste0(min_val, "% – ", max_val, "%")),
+              htmltools::tags$input(
+                id = id_min,
+                type = "range",
+                min = min_val,
+                max = max_val,
+                value = min_val,
+                step = 1,
+                oninput = sprintf("
+                  const min = parseInt(this.value);
+                  const max = parseInt(document.getElementById('%s').value);
+                  document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+                  Reactable.setFilter('school_nested-table', '%s', { min: min, max: max });
+                ", id_max, label_id, name),
+                style = "accent-color: #3C8EAB; background-color: #9a905d;width: 100%; margin-bottom: 4px;"
+              ),
+              htmltools::tags$input(
+                id = id_max,
+                type = "range",
+                min = min_val,
+                max = max_val,
+                value = max_val,
+                step = 1,
+                oninput = sprintf("
+                  const max = parseInt(this.value);
+                  const min = parseInt(document.getElementById('%s').value);
+                  document.getElementById('%s').innerText = min + '%% – ' + max + '%%';
+                  Reactable.setFilter('school_nested-table', '%s', { min: min, max: max });
+                ", id_min, label_id, name),
+                style = "accent-color: #3C8EAB; background-color: #9a905d;width: 100%;"
+              )
+            )
+          }
+        ),
+
+        # Enrolled percent by school
+        avg_perc_enroll = colDef(
+          sortable = TRUE,
+          name = "Enrolled %",
+          format = colFormat(digits = 1, percent = TRUE),
+          aggregate = "mean",
+          filterable = TRUE,
+          filterMethod = htmlwidgets::JS("
+            function(rows, columnId, filterValue) {
+              return rows.filter(function(row) {
+                const value = row.values[columnId]* 100;
+                return value >= filterValue.min && value <= filterValue.max;
+              });
+            }
+          "),
+          filterInput = function(values, name) {
+            min_val <- floor(min(values, na.rm = TRUE) * 100)
+            max_val <- ceiling(max(values, na.rm = TRUE) * 100)
+            id_min <- paste0('min-', name)
+            id_max <- paste0('max-', name)
+            label_id <- paste0('label-', name)
+
+            htmltools::tags$div(
+              htmltools::tags$span(id = label_id, paste0(min_val, "% – ", max_val, "%")),
+              htmltools::tags$input(
+                id = id_min,
+                type = "range",
+                min = min_val,
+                max = max_val,
+                value = min_val,
+                step = 1,
+                oninput = sprintf("
+                  const min = parseInt(this.value);
+                  const max = parseInt(document.getElementById('%s').value);
+                  document.getElementById('%s').innerText = min + '%% – ' + max+ '%%';
+                  Reactable.setFilter('school_nested-table', '%s', { min: min, max: max });
+                ", id_max, label_id, name),
+                style = "accent-color: #3C8EAB;background-color: #9a905d; width: 100%; margin-bottom: 4px;"
+              ),
+              htmltools::tags$input(
+                id = id_max,
+                type = "range",
+                min = min_val,
+                max = max_val,
+                value = max_val,
+                step = 1,
+                oninput = sprintf("
+                  const max = parseInt(this.value);
+                  const min = parseInt(document.getElementById('%s').value);
+                  document.getElementById('%s').innerText = min + '%% – ' + max+ '%%';
+                  Reactable.setFilter('school_nested-table', '%s', { min: min, max: max });
+                ", id_min, label_id, name),
+                style = "accent-color: #3C8EAB; background-color: #9a905d;width: 100%;"
+              )
+            )
+          }
+        ),
+
+        # Total enrolled students by school
+        total_n_enroll = colDef(
+          name = "No. Enrolled Students",
+          sortable = TRUE
+        )
+      ) # end of school level columns
+
+      # -----------------------------
+      # Grade-level nested table (within each school)
+      # -----------------------------
+      , details = function(index){
+        school <- detail_data$SCHOOL_NAME_LONG[index]
+        District_id <- detail_data$DistrictID[index]
+        detail_data1 <- Gradeleveltabs |> 
+          filter(SCHOOL_NAME_LONG == school & DistrictID == District_id) |>
+          select(-c(DISTRICT_NAME, SCHOOL_NAME_LONG, DistrictID, SchoolID,n_enrolled, n_total)) |>
+          relocate(perc_eligible, .before = n_eligible) |>
+          relocate(perc_enroll, .before = perc_eligible)
+
+        reactable(
+          wrap = TRUE,
+          theme = slate_change(
+            backcolor = "#8a97a6",
+            header_font_size = 16,
+            font_color = "#181a1c",
+            header_font_color = "white",
+            borderColor2 = "#8a97a6"
+          ),
+          detail_data1,
+          columns = list(
+            grade = colDef(name = "Grade",
+                           vAlign = "center",
+                           align = "center", maxWidth = 150,
+                           style = function(value) {
+    list(fontWeight = "bold", fontSize = "18px")
+  }),
+            n_eligible = colDef(
+              name = "No. of Eligible Students",
+              align = "center",
+              vAlign = "center",
+              format = colFormat(digits = 0, separators = TRUE),
+              cell = data_bars(
+                fill_color = "#26C6DA",
+                background = "transparent",
+                text_size = 22,
+                bar_height = 9,
+                text_position = 'outside-end',
+                text_color = "white",
+                round_edges = TRUE,
+                max_value = max(detail_data1$n_eligible),
+                data = detail_data1
+              )
+            ),
+            perc_eligible = colDef(
+              name = "% Eligible by Grade",
+              vAlign = "center",
+              align = "center",
+              minWidth = 250,
+              format = colFormat(digits = 1),
+              width = 100,
+              cell = color_tiles(
+                data = detail_data1,
+                number_fmt = scales::label_percent(accuracy = 0.1),
+                colors = colorRampPalette(brewer.pal(9, "Blues"))(100)
+              )
+            ),
+            perc_enroll = colDef(
+              name = "% Enrolled by Grade",
+              vAlign = "center",
+              align = "center",
+              minWidth = 150,
+              format = colFormat(digits = 1),
+              width = 100,
+              cell = color_tiles(
+                data = detail_data1,
+                number_fmt = scales::label_percent(accuracy = 0.1),
+                colors = colorRampPalette(brewer.pal(9, "Blues"))(100)
+              )
+            )
+          )
+        )
+      },
+
+      height = 600,
+      bordered = TRUE,
+      highlight = TRUE,
+      resizable = TRUE,
+      sortable = FALSE
+    ) # end of nested school-level table
+  }
+) # end of main reactable function
+
+
+
+#  title 
+
+title <- div(
+  style = "
+    display: flex;
+    flex-wrap: wrap;             /* allow wrapping on very small screens */
+    align-items: center;
+    justify-content: center;
+    color: black;
+    font-family: 'Poppins', sans-serif;
+    font-weight: bold;
+    font-size: calc(14px + 2vw); /* responsive font size */
+    margin: 10px 0 15px 0;
+    gap: 10px;                   /* space between text and images */
+  ",
+  # text container
+  div(
+    style = "flex-shrink: 1; min-width: 200px; text-align: center;",  
+    HTML("Enrollment &amp; Eligibility Across Florida Schools")
+  ),
+  # images container
+  div(
+    style = "
+      display: flex; 
+      flex-shrink: 1; 
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    ",
+    HTML("
+      <img src='images/NWRI_Logo_blue_orange.png' 
+           style='height: calc(40px + 5vh); width: auto;' 
+           alt='New Worlds Reading'>
+      <img src='images/LCLearning_Primary_RGB.png' 
+           style='height: calc(40px + 5vh); width: auto;' 
+           alt='Learning Logo'>
+    ")
+  )
+)
+
+
+# put them in exact order: title → ticker → table
+tagList(
+  title,
+  ticker,
+  tbl
+)
+```
+
