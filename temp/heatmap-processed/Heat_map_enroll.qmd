@@ -1,0 +1,488 @@
+---
+title: "<span style='font-family:Poppins, sans-serif; font-size:18px; font-style:italic;'>District enrollment activity (Last updated: `r format(Sys.time(), '%B %d, %Y %I:%M %p', tz = 'America/New_York')`)"
+author: "NWRI D Team"
+output-dir: ../../docs/
+format:
+  html:
+    self-contained: true
+    toc: false
+    page-layout: custom
+    css: styles.css
+editor: visual
+execute:
+  echo: false
+  cache: false
+  freeze: false
+---
+
+```{=html}
+<script>
+  const password = prompt("Enter password");
+  if (password !== "NWRI") {
+    document.body.innerHTML = "Access denied";
+  }
+</script>
+```
+
+```{=html}
+<style>
+/* --- Wrapper bar --- */
+.ticker-wrap { 
+  width: 100%; 
+  overflow: hidden; 
+  background: #111;        
+  padding: 8px 0; 
+  display: flex;
+  align-items: center;
+  position: relative;       /* allow z-index inside */
+  z-index: 1;               /* base level */
+}
+
+/* --- Label that stays fixed --- */
+.ticker-label {
+  flex: 0 0 auto;
+  padding: 0.3rem 1rem;
+  margin-right: 0.5rem;
+  background: #333;
+  color: #fff;
+  font-family: monospace;
+  font-size: 1.1em;
+  border-radius: 4px;
+  white-space: nowrap;
+  position: relative;       /* allow z-index */
+  z-index: 10;              /* sit above scrolling ticker */
+}
+
+/* --- Scrolling ticker --- */
+.ticker { 
+  display: flex; 
+  flex-wrap: nowrap; 
+  flex: 1;                  /* take remaining width */
+  overflow: hidden;
+  position: relative;
+  z-index: 5;               /* below label */
+}
+
+.ticker-move { 
+  display: flex; 
+  flex-shrink: 0; 
+  animation: ticker-move 180s linear infinite;
+}
+
+/* --- Ticker items --- */
+.item { 
+  flex: 0 0 auto; 
+  margin-right: 10rem; 
+  font-family: monospace; 
+  font-size: 1.2em; 
+  white-space: nowrap;
+  opacity: 1;                
+  mix-blend-mode: normal;    
+  position: relative;
+  z-index: 1;               /* ensure below label */
+}
+
+/* Colors */
+.item.pos { color: #4CFF4C; }
+.item.neg { color: #fcba03; }
+.item.zero { color: #CCCCCC; }
+
+/* --- Animation --- */
+@keyframes ticker-move { 
+  from { transform: translateX(0); } 
+  to   { transform: translateX(-50%); } 
+}
+</style>
+```
+
+```{r setup, include=FALSE}
+#load libraries
+require(reactable)
+require(reactablefmtr)
+require(scico)
+require(htmltools)
+require(tidyr)
+
+```
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
+# Pick a palette, e.g. Moonrise1 has a nice red/blue/yellow
+
+#wes_cols <- colorRampPalette(c(
+ # "#f7fbff",  # very pale blue-white
+  #"#c6dbef",  # light sky
+  #"#6baed6",  # medium blue
+  #"#2171b5",  # royal blue
+  #"#08306b"   # dark navy
+#))(200)
+
+
+wes_cols <- scico(200, palette = "lapaz",direction = -1)  # blue to navy, very smooth
+
+get_latest_rds <- function(dir_path, verbose = TRUE, return_name = FALSE) {
+  rds_files <- list.files(path = dir_path, pattern = "\\.rds$", full.names = TRUE)
+  
+  if (length(rds_files) == 0) return(if (return_name) NA else NULL)
+  
+  file_dates <- sub(".*?(\\d{4}-\\d{2}-\\d{1,2})\\.rds$", "\\1", basename(rds_files))
+  file_dates <- as.Date(file_dates, format = "%Y-%m-%d")
+  
+  latest_file <- rds_files[which.max(file_dates)]
+  
+  if (return_name) {
+    return(basename(latest_file))
+  } else {
+    return(readRDS(latest_file))
+  }
+}
+
+
+Enrollment_heat <- get_latest_rds("heatmapdata/")
+enroll_heat_week <- get_latest_rds("heatmapdataweekly/")
+objectlist <- get_latest_rds("reactable_element")
+legend_weekly <- get_latest_rds("weekly_legend")
+
+
+file_heatmap <- get_latest_rds("heatmapdata/", return_name = TRUE)
+file_heatmap_week <- get_latest_rds("heatmapdataweekly/", return_name = TRUE)
+file_objectlist <- get_latest_rds("reactable_element", return_name = TRUE)
+
+```
+
+::: title-wrap
+Enrollment & Eligibility Across Florida Schools <img src="images/NWRI_Logo_blue_orange.png" alt="New Worlds Reading" width="225" height="125"/> <img src="images/LCLearning_Primary RGB.png" alt="LCLearning" width="350" height="100"/>
+:::
+
+```{=html}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+.title-wrap {
+  width: 100%;
+  padding: 10px 0 15px 0;
+  text-align: left;
+  color: black;
+  font-size: 1.5em;
+  font-weight: bold;
+  font-family: 'Poppins', sans-serif;
+}
+.title-wrap img {
+  vertical-align: middle;
+  margin-left: 1rem;
+}
+</style>
+```
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+# extract columns for most recent weeks
+recent_weeks <- enroll_heat_week[, c(1, ncol(enroll_heat_week)-3, ncol(enroll_heat_week)-2)]
+
+# rename for clarity
+names(recent_weeks)[2:3] <- c("two_weeks", "last_week")
+
+# compute raw + percent diffs
+recent_weeks$raw_diff  <- recent_weeks$last_week - recent_weeks$two_weeks
+recent_weeks$perc_diff <- round(100 * recent_weeks$raw_diff / recent_weeks$two_weeks, 1)
+
+# handle special cases
+recent_weeks$perc_diff <- ifelse(recent_weeks$raw_diff == 0, 0, recent_weeks$perc_diff)
+recent_weeks$perc_diff <- ifelse(is.infinite(recent_weeks$perc_diff), NA, recent_weeks$perc_diff)
+
+recent_weeks <- data.frame(
+  ticker     = recent_weeks$DISTRICT_NAME,
+  two_week  = recent_weeks$two_weeks,
+  last_week  = recent_weeks$last_week,
+  raw_diff   = recent_weeks$raw_diff,
+  perc_diff  = recent_weeks$perc_diff
+)
+
+recent_weeks <- recent_weeks |> drop_na(perc_diff)
+
+
+# add arrows + descriptive phrasing
+recent_weeks$change_text <- ifelse(
+  recent_weeks$raw_diff > 0,
+  paste0("↑ Last week: ", recent_weeks$last_week, " enrollments (Two weeks ago: ", recent_weeks$two_week,")"),
+  ifelse(
+    recent_weeks$raw_diff < 0,
+    paste0("↓ Last week: ", recent_weeks$last_week, " enrollments (Two weeks ago: ", recent_weeks$two_week,")"),
+    paste0("→ Last week: ", recent_weeks$last_week, " enrollments (same as two weeks ago)")
+  )
+)
+
+
+# build ticker items
+ticker_items <- paste0(
+  "<div class='item ",
+  ifelse(recent_weeks$raw_diff > 0, "pos",
+         ifelse(recent_weeks$raw_diff < 0, "neg", "zero")),
+  "'>",
+  recent_weeks$ticker, ": ",
+  recent_weeks$change_text,
+  "</div>",
+  collapse = ""
+)
+
+
+
+```
+
+::: panel-tabset
+## Monthly Enrollment
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+
+
+options(reactable.theme = reactableTheme(
+  color = "#000000",                        # black text
+  backgroundColor = "#E0E2E5",              # light slate gray table background
+  borderColor = "#B0B3B8",                  # medium gray borders
+  stripedColor = "#D6D8DB",                 # subtle striped rows
+  highlightColor = "#A9CCE3",               # light blue for hover
+  inputStyle = list(
+    backgroundColor = "#F0F2F5",
+    color = "#000000"
+  ),
+  selectStyle = list(
+    backgroundColor = "#F0F2F5",
+    color = "#000000"
+  ),
+  pageButtonHoverStyle = list(
+    backgroundColor = "#D0D4DB"
+  ),
+  pageButtonActiveStyle = list(
+    backgroundColor = "#B0B3B8"
+  )
+))
+
+# make table (without subtitle)
+tbl <- reactable(
+  Enrollment_heat,
+  defaultSorted = 'total', defaultSortOrder = "desc",
+  wrap = TRUE,
+  defaultPageSize = 100, height = "100%",
+  bordered = TRUE,
+  highlight = TRUE,
+  resizable = TRUE,
+  sortable = TRUE,
+  pagination = FALSE,
+  showSortIcon = FALSE,
+  defaultColDef = colDef(
+    maxWidth = 80,
+    align = 'center',
+    cell = tooltip(),
+    style = color_scales(
+      data = Enrollment_heat,
+      span = 2:(ncol(Enrollment_heat)),
+      colors = wes_cols,
+      bias = 1.4,
+      opacity = 0.9,
+      show_text = FALSE
+    )
+  ),
+  columns = list(
+    DISTRICT_NAME = colDef(name = "District", filterable = TRUE, maxWidth = 200),
+    total = colDef(
+      name = "Annual Total",
+      maxWidth = 225,
+      cell = data_bars(number_fmt = scales::comma,
+        data = Enrollment_heat,
+        fill_color = wes_cols, text_color = "black",
+        bias = 1.4,
+        fill_opacity = 0.9,
+        background = "transparent",
+        bar_height = 40,
+        text_position = "outside-end"
+      ),
+      style = list(borderLeft = "2px solid #999999")
+    )
+  )
+)
+
+# external subtitle (instead of add_subtitle)
+subtitle <- div(
+  style = "text-align:center; font-style:italic; color:#777777;
+           font-size:18px; margin:0 0 10px 0;",
+  "Hover over cells to see values"
+)
+
+# ticker HTML
+ticker <- HTML(paste0('
+<div class="ticker-wrap">
+<div class="ticker-label">Enrollments last two weeks:</div>
+  <div class="ticker">
+    <div class="ticker-move">
+      ', ticker_items, ' ', ticker_items, '
+    </div>
+  </div>
+</div>
+'))
+
+
+# put them in exact order: subtitle → ticker → table
+tagList(
+  subtitle,
+  ticker,
+  tbl
+)
+
+
+
+```
+
+## Weekly Enrollment
+
+```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
+dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
+  function(values, name) {
+    dataListId <- sprintf("%s-%s-list", tableId, name)
+    tagList(
+      tags$input(
+        type = "text",
+        list = dataListId,
+        oninput = sprintf(
+          "Reactable.setFilter('%s', '%s', event.target.value || undefined)",
+          tableId, name
+        ),
+        "aria-label" = sprintf("Filter %s", name),
+        style = style
+      ),
+      tags$datalist(
+        id = dataListId,
+        lapply(unique(values), function(value) tags$option(value = value))
+      )
+    )
+  }
+}
+
+
+options(reactable.theme = reactableTheme(
+  color = "#000000",                        # black text
+  backgroundColor = "#E0E2E5",              # light slate gray table background
+  borderColor = "#B0B3B8",                  # medium gray borders
+  stripedColor = "#D6D8DB",                 # subtle striped rows
+  highlightColor = "#A9CCE3",               # light blue for hover
+  inputStyle = list(
+    backgroundColor = "#F0F2F5",
+    color = "#000000"
+  ),
+  selectStyle = list(
+    backgroundColor = "#F0F2F5",
+    color = "#000000"
+  ),
+  pageButtonHoverStyle = list(
+    backgroundColor = "#D0D4DB"
+  ),
+  pageButtonActiveStyle = list(
+    backgroundColor = "#B0B3B8"
+  )
+))
+
+
+tbl<-reactable(enroll_heat_week,
+          defaultSorted = 'total',
+          defaultSortOrder = "desc",
+          wrap = TRUE,
+          defaultPageSize = 100,
+          height = "100%",
+          bordered = TRUE,
+          highlight = TRUE,
+          resizable = FALSE,
+          sortable = TRUE,
+          pagination = FALSE,
+          showSortIcon = FALSE,
+          elementId = "districts-table",
+          
+          defaultColDef = colDef(
+            minWidth = 100,
+            align = 'center',
+            cell = tooltip(),
+            style = color_scales(
+              data = enroll_heat_week,
+              span = 2:(ncol(enroll_heat_week)),
+              colors = wes_cols,
+              bias = 3,
+              opacity = 0.8,
+              show_text = FALSE
+            )
+          ),
+          
+          columnGroups = objectlist,   
+          columns = list(
+            DISTRICT_NAME = colDef(name = "District",    
+                                   sticky = "left",
+                                   filterable = T,
+                                   minWidth = 200,
+                                   filterInput = dataListFilter("districts-table"),
+                                   filterMethod = JS("
+        function(rows, columnId, filterValue) {
+          if (!filterValue) return rows;
+          const terms = filterValue.toLowerCase().split(',').map(t => t.trim());
+          return rows.filter(row => {
+            const cell = row.values[columnId].toLowerCase();
+            return terms.some(term => cell.includes(term));
+          });
+        }
+      ")),
+            total = colDef(name = "Annual Total",
+                           sticky = "right",
+                           minWidth = 225,
+                           cell = data_bars(number_fmt = scales::comma,
+                             data = enroll_heat_week,
+                             fill_color = wes_cols,text_color = "black",
+                             bias = 1.4,
+                             fill_opacity = 0.9,
+                             background = 'transparent',
+                             bar_height = 40,
+                             text_position = 'outside-end'
+                           ),
+                           style = list(borderLeft = "2px solid #999999")
+            )
+          )
+) |>
+  add_legend(
+    data = legend_weekly,
+    align = 'left',
+    title = 'Enrollment #',
+    col_name = 'n',
+    colors = wes_cols,
+    bias = 3,    number_fmt = scales::comma 
+  )
+
+# ticker HTML
+ticker <- HTML(paste0('
+<div class="ticker-wrap">
+<div class="ticker-label">Enrollments last two weeks:</div>
+  <div class="ticker">
+    <div class="ticker-move">
+      ', ticker_items, ' ', ticker_items, '
+    </div>
+  </div>
+</div>
+'))
+
+# put them in exact order: subtitle → ticker → table
+tagList(
+  subtitle,
+  ticker,
+  tbl
+)
+
+```
+
+## Build Info
+
+```{r, echo=FALSE}
+knitr::kable(
+  data.frame(
+    Component = c("Heatmap Data", "Weekly Heatmap", "Column Definitions"),
+    File_Used = c(file_heatmap, file_heatmap_week, file_objectlist)
+  ),
+  caption = "Files used to generate this report"
+)
+
+
+
+
+```
+:::
