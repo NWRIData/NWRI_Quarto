@@ -108,18 +108,18 @@ execute:
 
 ```{r setup, include=FALSE}
 
-require(dplyr)
-require(reactable)
-require(reactablefmtr)
-require(RColorBrewer)
-require(viridis)
-require(wesanderson)
-require(scales)
-require(htmlwidgets)
-require(htmltools)
-require(stringr)
-require(lubridate)
-require(tidyr)
+library(dplyr)
+library(reactable)
+library(reactablefmtr)
+library(RColorBrewer)
+library(viridis)
+library(wesanderson)
+library(scales)
+library(htmlwidgets)
+library(htmltools)
+library(stringr)
+library(lubridate)
+library(tidyr)
 ```
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE, cache=FALSE}
