@@ -87,6 +87,11 @@ jobs:
         with:
           use-public-rspm: true
 
+      - name: Install system dependencies for pak
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev
+
       - name: Install R dependencies using pak
         run: |
           Rscript -e 'install.packages("pak", repos="https://cloud.r-project.org")'
@@ -133,6 +138,11 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
+
+      - name: Install system dependencies for pak
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev
 
       - name: Install R dependencies using pak
         run: |
