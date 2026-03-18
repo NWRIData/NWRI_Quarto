@@ -205,7 +205,7 @@ jobs:
           Rscript -e 'install.packages("pak", repos="https://cloud.r-project.org")'
           Rscript -e 'pak::pkg_install(c(
             "tidyr", "stringr", "lubridate", "dplyr", "scales", "scico", "viridis",
-            "htmlwidgets", "htmltools", "reactable", "reactablefmtr",
+            "htmlwidgets", "htmltools", "reactable", "kcuilla/reactablefmtr",
             "wesanderson", "RColorBrewer", "here"
           ))'
 
