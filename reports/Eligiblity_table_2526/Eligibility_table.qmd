@@ -23,7 +23,6 @@ execute:
 </script>
 ```
 
-
 ```{=html}
 <style>
 /* --- Wrapper bar --- */
@@ -103,7 +102,6 @@ execute:
 }
 
 </style>
-
 ```
 
 ```{r setup, include=FALSE}
@@ -204,26 +202,22 @@ district_level<-Gradeleveltabs |>
 
 district_level<-left_join(district_level, nonmatch_data |> select(DistrictName, n), by = c("DISTRICT_NAME"= "DistrictName")) |>
   mutate(total_eligiblity = total_eligible_d/total_district_pop, 
-         total_enroll = total_enroll_d/total_eligible_d,
-         nonmatch_added_enroll = (total_enroll_d + n)/total_eligible_d
+         total_enroll = total_enroll_d/(total_eligible_d+total_enroll_d),
+         nonmatch_added_enroll = (total_enroll_d + n)/(total_eligible_d+total_enroll_d+n)
          ) %>%
    drop_na(DISTRICT_NAME) %>%
   select(-c(total_enroll_d,total_district_pop,n))
              
-#add nonmatched students as a second column
-
-left_join(district_level, nonmatch_data |> select(DistrictName, n), by = c("DISTRICT_NAME"= "DistrictName")) %>%
-  mutate()
 
 
 ```
 
 **Table guide**:
 
-* The "Enrolled % (Scholastic version)" calculates the percent of enrolled New Worlds Reading Students (out of all eligible students) including non-matched but enrolled students. This percentage should match (or very closely match) the percentage provided in the Scholastic Dashboard. 
-* Non-matched but enrolled students are students who were matched to DOE data and enrolled but were later unmatched because a better matching student applied. These non-matched students still receive books. For more info see [here](/further_details.html). 
-* The "Enrolled %" calculates the percent of enrolled New Worlds Reading Students without including non-matched enrolled students.
-* Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
+-   The "Enrolled % (Scholastic version)" calculates the percent of enrolled New Worlds Reading Students (out of all eligible students) including non-matched but enrolled students. This percentage should match (or very closely match) the percentage provided in the Scholastic Dashboard.
+-   Non-matched but enrolled students are students who were matched to DOE data and enrolled but were later unmatched because a better matching student applied. These non-matched students still receive books. For more info see [here](/further_details.html).
+-   The "Enrolled %" calculates the percent of enrolled New Worlds Reading Students without including non-matched enrolled students.
+-   Schools highlighted in [orange]{style="background-color: orange"} fall under the average enrollment and over the average eligibility percentages!
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
@@ -276,7 +270,6 @@ ticker_items <- paste0(
 
 
 ```
-
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 
@@ -366,12 +359,7 @@ dataListFilter <- function(tableId, style = "width: 100%; height: 28px;") {
 }
 ```
 
-
-```{=html}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-
-```
-
 
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, cache=FALSE, message=FALSE}
 #this is the main table
@@ -977,8 +965,7 @@ tbl <- reactable(
 
 
 
-#  title 
-
+# title 
 title <- div(
   style = "
     display: flex;
@@ -1017,12 +1004,26 @@ title <- div(
   )
 )
 
+# ticker disclaimer
+disclaimer <- div(
+  style = "
+    font-family: 'Poppins', sans-serif; 
+    font-size: 12px; 
+    font-style: italic; 
+    color: #97999b; 
+    text-align: right; 
+    margin-top: 5px; 
+    margin-bottom: 15px;
+    padding-right: 10px;
+  ",
+  "*Disclaimer: The ticker is not 100% accurate due to delays in receiving data from partners. For the most up-to-date data regarding enrollments, it is best to reach out to the New Worlds Reading Data Team."
+)
 
-# put them in exact order: title → ticker → table
+# put them in exact order: title → ticker → disclaimer → table
 tagList(
   title,
   ticker,
+  disclaimer,
   tbl
 )
 ```
-
