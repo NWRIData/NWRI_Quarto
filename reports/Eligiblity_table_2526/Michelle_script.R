@@ -18,7 +18,7 @@ get_latest_rds <- function(dir_path, verbose = TRUE) {
   if (verbose) cat("Loaded file from:", latest_file, "\n")
   readRDS(latest_file)
 }
-setwd("reports/Eligiblity_table_2526/")
+
 Gradeleveltabs<-get_latest_rds("data/")
 enroll_heat_week <- get_latest_rds("heatmapdataweekly/")
 nonmatch_data<-get_latest_rds("nonmatch_data/")
@@ -87,3 +87,58 @@ district_level<-left_join(district_level, nonmatch_data |> select(DistrictName, 
   ) %>%
   drop_na(DISTRICT_NAME) %>%
   select(-c(total_enroll_d,total_district_pop,n))
+
+Finalexcel<-Gradeleveltabs |>
+  group_by(DistrictID, SchoolID,DISTRICT_NAME, SCHOOL_NAME_LONG) |>
+  summarize(
+    total_n_eligible = sum(n_eligible),
+    total_n_enroll = sum(n_enrolled),
+    total_school_pop = sum(n_total),
+    avg_perc_eligible = total_n_eligible/total_school_pop,
+    avg_perc_enroll = total_n_enroll/ total_school_pop,
+    .groups = "drop") |>
+  mutate(priorit_col = case_when(
+    avg_perc_enroll <  mean(orangefilter$perc_enroll, na.rm = T) &
+      avg_perc_eligible > mean(orangefilter$perc_eligible, na.rm = T) ~ "orange",
+    TRUE ~ 'grey'
+  )) |>
+  relocate(avg_perc_eligible, .after =total_n_eligible) |>
+  relocate(avg_perc_enroll, .after = avg_perc_eligible) |>
+  mutate('School Type' = priorit_col)  |>
+  select(DistrictID, SchoolID, DISTRICT_NAME, SCHOOL_NAME_LONG, total_n_eligible, total_n_enroll, total_school_pop,
+         avg_perc_eligible,avg_perc_enroll) %>%
+  rename('K-5 Student Population' = total_school_pop,
+         'Eligible Unenrolled Students (K-5)' = total_n_eligible,
+         'Eligible enrolled Students (K-5)' = total_n_enroll,
+         'Eligible Unenrolled (%)' = avg_perc_eligible,
+         'Enrolled (%)' = avg_perc_enroll)
+
+
+library(openxlsx)
+
+# 2. Identify the column indices that need percentage formatting
+# This finds the columns by name so it's safer than hardcoding numbers
+pct_cols <- which(names(Finalexcel) %in% c("Eligible Unenrolled (%)", "Enrolled (%)"))
+
+# 3. Create a workbook and add your data
+wb <- createWorkbook()
+addWorksheet(wb, "School Analysis")
+writeData(wb, "School Analysis", Finalexcel)
+
+# 4. Create the percentage style (0.00% displays 0.1 as 10.00%)
+pct_style <- createStyle(numFmt = "0.00%")
+
+# 5. Apply the style to the percentage columns
+# Rows are 1 to nrow + 1 to include the header
+addStyle(wb, 
+         sheet = "School Analysis", 
+         style = pct_style, 
+         cols = pct_cols, 
+         rows = 1:(nrow(Finalexcel) + 1), 
+         gridExpand = TRUE)
+
+# 6. Optional: Auto-adjust column widths for better readability
+setColWidths(wb, "School Analysis", cols = 1:ncol(Finalexcel), widths = "auto")
+
+# 7. Save the file
+saveWorkbook(wb, "/Users/leo.ohyama/Desktop/School_Eligibility_Report.xlsx", overwrite = TRUE)
