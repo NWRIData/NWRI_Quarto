@@ -1,4 +1,6 @@
 ---
+
+---
 title: "<span style='font-family:Poppins, sans-serif; font-size:18px; font-style:italic;'>Table last updated: `r format(Sys.Date(), '%B %d, %Y')`</span>"
 output-dir: ../../docs/
 format:
